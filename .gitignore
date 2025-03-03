@@ -1,0 +1,15 @@
+# Compiled code
+/dist/*
+/docs/*
+
+# Yarn dependencies
+.yarn/*
+!.yarn/versions
+
+# Various tooling caches
+node_modules
+tsconfig.tsbuildinfo
+
+# direnv/devenv config and cache
+local.envrc
+/.devenv-initialized
