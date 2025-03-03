@@ -14,6 +14,7 @@ import { Transform } from "prosemirror-transform";
 import { type EditorView } from "prosemirror-view";
 
 import { findSuggestionMarkEnd } from "./findSuggestionMarkEnd.js";
+import { suggestChangesKey } from "./plugin.js";
 
 /**
  * Given a node and a transform, add a set of steps to the
@@ -378,4 +379,40 @@ export function selectSuggestion(suggestionId: number): Command {
     );
     return true;
   };
+}
+
+export function enableSuggestChanges(
+  state: EditorState,
+  dispatch?: EditorView["dispatch"],
+) {
+  if (!suggestChangesKey.getState(state)) return false;
+  if (!dispatch) return true;
+
+  dispatch(state.tr.setMeta(suggestChangesKey, { enabled: true }));
+  return true;
+}
+
+export function disableSuggestChanges(
+  state: EditorState,
+  dispatch?: EditorView["dispatch"],
+) {
+  if (!suggestChangesKey.getState(state)) return false;
+  if (!dispatch) return true;
+
+  dispatch(state.tr.setMeta(suggestChangesKey, { enabled: false }));
+  return true;
+}
+
+export function toggleSuggestChanges(
+  state: EditorState,
+  dispatch?: EditorView["dispatch"],
+) {
+  const pluginState = suggestChangesKey.getState(state);
+  if (!pluginState) return false;
+  if (!dispatch) return true;
+
+  dispatch(
+    state.tr.setMeta(suggestChangesKey, { enabled: !pluginState.enabled }),
+  );
+  return true;
 }

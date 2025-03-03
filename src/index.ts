@@ -1,9 +1,12 @@
 export {
-  selectSuggestion as selectChange,
-  revertSuggestion as revertTrackedChange,
-  revertSuggestions as revertTrackedChanges,
-  applySuggestion as applyTrackedChange,
-  applySuggestions as applyTrackedChanges,
+  selectSuggestion,
+  revertSuggestion,
+  revertSuggestions,
+  applySuggestion,
+  applySuggestions,
+  enableSuggestChanges,
+  disableSuggestChanges,
+  toggleSuggestChanges,
 } from "./commands.js";
 
 export {
@@ -15,4 +18,10 @@ export {
 
 export { getSuggestionDecorations } from "./decorations.js";
 
-export { suggestChanges, suggestChangesKey } from "./plugin.js";
+export {
+  suggestChanges,
+  suggestChangesKey,
+  isSuggestChangesEnabled,
+} from "./plugin.js";
+
+export { withSuggestChanges } from "./withSuggestChanges.js";
