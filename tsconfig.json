@@ -15,8 +15,6 @@
     "preserveSymlinks": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "incremental": true,
-    "jsx": "react",
-    "types": ["node"]
+    "incremental": true
   }
 }

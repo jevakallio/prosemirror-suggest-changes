@@ -29,6 +29,7 @@ export default tseslint.config(
           allowDefaultProject: [
             "eslint.config.js",
             "vite.config.ts",
+            "vitest.config.ts",
             "lint-staged.config.js",
             "demo/main.tsx",
           ],

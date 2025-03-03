@@ -8,7 +8,7 @@
 
 # Various tooling caches
 node_modules
-tsconfig.tsbuildinfo
+*.tsbuildinfo
 
 # direnv/devenv config and cache
 local.envrc
