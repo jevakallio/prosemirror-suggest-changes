@@ -20,5 +20,5 @@ export default {
   "README.md": () => "yarn fix:toc",
   // For markdown, HTML, and YAML files, we just run Prettier. ESLint doesn't have
   // anything to say about these.
-  "*.{md,yml,html}": "prettier --write",
+  "*.{md,yml,html,swcrc}": "prettier --write",
 };

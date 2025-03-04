@@ -5,7 +5,7 @@
   },
   "jsc": {
     "parser": {
-      "syntax": "typescript",
+      "syntax": "typescript"
     },
     "keepClassNames": true
   },
