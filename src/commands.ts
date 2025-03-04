@@ -381,6 +381,7 @@ export function selectSuggestion(suggestionId: number): Command {
   };
 }
 
+/** Command that enables suggest changes */
 export function enableSuggestChanges(
   state: EditorState,
   dispatch?: EditorView["dispatch"],
@@ -392,6 +393,7 @@ export function enableSuggestChanges(
   return true;
 }
 
+/** Command that disables suggest changes */
 export function disableSuggestChanges(
   state: EditorState,
   dispatch?: EditorView["dispatch"],
@@ -403,6 +405,7 @@ export function disableSuggestChanges(
   return true;
 }
 
+/** Command that toggles suggest changes on or off */
 export function toggleSuggestChanges(
   state: EditorState,
   dispatch?: EditorView["dispatch"],

@@ -109,6 +109,10 @@ export const modification: MarkSpec = {
   ],
 };
 
+/**
+ * Add the deletion, insertion, and modification marks to
+ * the provided MarkSpec map.
+ */
 export function addSuggestionMarks<Marks extends string>(
   marks: Record<Marks, MarkSpec>,
 ): Record<Marks | "deletion" | "insertion" | "modification", MarkSpec> {

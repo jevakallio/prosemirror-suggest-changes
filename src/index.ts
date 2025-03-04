@@ -1,4 +1,11 @@
 export {
+  addSuggestionMarks,
+  insertion,
+  deletion,
+  modification,
+} from "./schema.js";
+
+export {
   selectSuggestion,
   revertSuggestion,
   revertSuggestions,
@@ -8,15 +15,6 @@ export {
   disableSuggestChanges,
   toggleSuggestChanges,
 } from "./commands.js";
-
-export {
-  addSuggestionMarks,
-  insertion,
-  deletion,
-  modification,
-} from "./schema.js";
-
-export { getSuggestionDecorations } from "./decorations.js";
 
 export {
   suggestChanges,

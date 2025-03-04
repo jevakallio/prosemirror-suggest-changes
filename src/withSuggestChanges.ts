@@ -190,6 +190,17 @@ export function transformToSuggestionTransaction(
   return trackedTransaction;
 }
 
+/**
+ * A `dispatchTransaction` decorator. Wrap your existing `dispatchTransaction`
+ * function with `withSuggestChanges`, or pass no arguments to use the default
+ * implementation (`view.setState(view.state.apply(tr))`).
+ *
+ * The result is a `dispatchTransaction` function that will intercept
+ * and modify incoming transactions when suggest changes is enabled.
+ * These modified transactions will suggest changes instead of directly
+ * applying them, e.g. by marking a range with the deletion mark rather
+ * than removing it from the document.
+ */
 export function withSuggestChanges(
   dispatchTransaction?: EditorView["dispatch"],
 ): EditorView["dispatch"] {

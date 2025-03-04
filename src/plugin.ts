@@ -1,4 +1,5 @@
 import { type EditorState, Plugin, PluginKey } from "prosemirror-state";
+import { getSuggestionDecorations } from "./decorations.js";
 
 export const suggestChangesKey = new PluginKey<{ enabled: boolean }>(
   "@handlewithcare/prosemirror-suggest-changes",
@@ -19,6 +20,9 @@ export function suggestChanges() {
         if (meta && "enabled" in meta) return meta;
         return value;
       },
+    },
+    props: {
+      decorations: getSuggestionDecorations,
     },
   });
 }

@@ -12,11 +12,7 @@ function pilcrow() {
   return span;
 }
 
-export function getSuggestionDecorations(
-  state?: EditorState | null,
-): DecorationSource {
-  if (!state) return DecorationSet.empty;
-
+export function getSuggestionDecorations(state: EditorState): DecorationSource {
   const { deletion, insertion } = state.schema.marks;
   if (!deletion) {
     throw new Error(
