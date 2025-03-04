@@ -41,9 +41,23 @@ export const schema = new Schema({
     ...nodes,
     image: { ...nodes.image, group: "block", inline: false },
     doc: { ...nodes.doc, marks: "insertion deletion modification" },
-    ordered_list: { ...orderedList, group: "block", content: "list_item+" },
-    bullet_list: { ...bulletList, group: "block", content: "list_item+" },
-    list_item: { ...listItem, content: "block+" },
+    ordered_list: {
+      ...orderedList,
+      group: "block",
+      content: "list_item+",
+      marks: "insertion deletion modification",
+    },
+    bullet_list: {
+      ...bulletList,
+      group: "block",
+      content: "list_item+",
+      marks: "insertion deletion modification",
+    },
+    list_item: {
+      ...listItem,
+      content: "block+",
+      marks: "insertion deletion modification",
+    },
   },
   marks: addSuggestionMarks(marks),
 });
@@ -135,10 +149,11 @@ const suggestChangesUiPlugin = new Plugin({
       view.focus();
     });
 
-    const container = document.createElement("div");
-    container.classList.add("menu");
     const commandsContainer = document.createElement("div");
     commandsContainer.append(applyAllButton, revertAllButton);
+
+    const container = document.createElement("div");
+    container.classList.add("menu");
     container.append(toggleButton, commandsContainer);
 
     view.dom.parentElement?.prepend(container);
@@ -156,7 +171,7 @@ const suggestChangesUiPlugin = new Plugin({
         }
       },
       destroy() {
-        toggleButton.remove();
+        container.remove();
       },
     };
   },
