@@ -1,6 +1,10 @@
 import type { Node } from "prosemirror-model";
 import type { EditorState } from "prosemirror-state";
-import { Decoration } from "prosemirror-view";
+import {
+  Decoration,
+  DecorationSet,
+  type DecorationSource,
+} from "prosemirror-view";
 
 function pilcrow() {
   const span = document.createElement("span");
@@ -10,8 +14,8 @@ function pilcrow() {
 
 export function getSuggestionDecorations(
   state?: EditorState | null,
-): Decoration[] {
-  if (!state) return [];
+): DecorationSource {
+  if (!state) return DecorationSet.empty;
 
   const { deletion, insertion } = state.schema.marks;
   if (!deletion) {
@@ -100,5 +104,5 @@ export function getSuggestionDecorations(
     }
     return true;
   });
-  return changeDecorations;
+  return DecorationSet.create(state.doc, changeDecorations);
 }

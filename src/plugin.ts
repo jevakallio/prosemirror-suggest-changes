@@ -14,8 +14,9 @@ export function suggestChanges() {
       apply(tr, value) {
         const meta = tr.getMeta(suggestChangesKey) as
           | { enabled: boolean }
+          | { skip: true }
           | undefined;
-        if (meta) return meta;
+        if (meta && "enabled" in meta) return meta;
         return value;
       },
     },

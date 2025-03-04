@@ -19,7 +19,7 @@ import { suggestRemoveNodeMarkStep } from "./removeNodeMarkStep.js";
 import { suggestReplaceAroundStep } from "./replaceAroundStep.js";
 import { suggestReplaceStep } from "./replaceStep.js";
 import { type EditorView } from "prosemirror-view";
-import { isSuggestChangesEnabled } from "./plugin.js";
+import { isSuggestChangesEnabled, suggestChangesKey } from "./plugin.js";
 
 type StepHandler<S extends Step> = (
   trackedTransaction: Transaction,
@@ -200,9 +200,14 @@ export function withSuggestChanges(
     };
 
   return function dispatchTransaction(this: EditorView, tr: Transaction) {
-    const transaction = isSuggestChangesEnabled(this.state)
-      ? transformToSuggestionTransaction(tr, this.state)
-      : tr;
+    const transaction =
+      isSuggestChangesEnabled(this.state) &&
+      !tr.getMeta("history$") &&
+      !tr.getMeta("collab$") &&
+      !("skip" in (tr.getMeta(suggestChangesKey) ?? {}))
+        ? transformToSuggestionTransaction(tr, this.state)
+        : tr;
     dispatch.call(this, transaction);
+    console.log(this.state);
   };
 }

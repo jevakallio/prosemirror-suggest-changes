@@ -212,7 +212,7 @@ export function applySuggestions(
   const tr = state.tr;
   applySuggestionsToTransform(state.doc, tr, insertion, deletion);
   applyModificationsToTransform(tr.doc, tr, 1);
-  tr.setMeta("trackedChanges", true);
+  tr.setMeta(suggestChangesKey, { skip: true });
   dispatch?.(tr);
   return true;
 }
@@ -248,7 +248,7 @@ export function applySuggestion(suggestionId: number): Command {
     );
     applyModificationsToTransform(tr.doc, tr, 1);
     if (!tr.steps.length) return false;
-    tr.setMeta("trackedChanges", true);
+    tr.setMeta(suggestChangesKey, { skip: true });
     dispatch?.(tr);
     return true;
   };
@@ -279,7 +279,7 @@ export function revertSuggestions(
   const tr = state.tr;
   applySuggestionsToTransform(state.doc, tr, deletion, insertion);
   applyModificationsToTransform(tr.doc, tr, -1);
-  tr.setMeta("trackedChanges", true);
+  tr.setMeta(suggestChangesKey, { skip: true });
   dispatch?.(tr);
   return true;
 }
@@ -314,7 +314,7 @@ export function revertSuggestion(suggestionId: number): Command {
       suggestionId,
     );
     if (!tr.steps.length) return false;
-    tr.setMeta("trackedChanges", true);
+    tr.setMeta(suggestChangesKey, { skip: true });
     applyModificationsToTransform(tr.doc, tr, -1);
     dispatch?.(tr);
     return true;
