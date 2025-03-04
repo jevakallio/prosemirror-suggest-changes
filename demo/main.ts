@@ -12,7 +12,6 @@ import { EditorState, Plugin } from "prosemirror-state";
 import {
   applySuggestions,
   enableSuggestChanges,
-  getSuggestionDecorations,
   isSuggestChangesEnabled,
   revertSuggestions,
   suggestChanges,
@@ -203,7 +202,6 @@ const editorEl = document.getElementById("editor")!;
 const view = new EditorView(editorEl, {
   state: editorState,
   plugins,
-  decorations: getSuggestionDecorations,
   dispatchTransaction: withSuggestChanges(),
 });
 
