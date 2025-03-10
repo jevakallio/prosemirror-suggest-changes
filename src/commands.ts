@@ -389,7 +389,7 @@ export function enableSuggestChanges(
   if (!suggestChangesKey.getState(state)) return false;
   if (!dispatch) return true;
 
-  dispatch(state.tr.setMeta(suggestChangesKey, { enabled: true }));
+  dispatch(state.tr.setMeta(suggestChangesKey, { skip: true, enabled: true }));
   return true;
 }
 
@@ -401,7 +401,7 @@ export function disableSuggestChanges(
   if (!suggestChangesKey.getState(state)) return false;
   if (!dispatch) return true;
 
-  dispatch(state.tr.setMeta(suggestChangesKey, { enabled: false }));
+  dispatch(state.tr.setMeta(suggestChangesKey, { skip: true, enabled: false }));
   return true;
 }
 
@@ -415,7 +415,10 @@ export function toggleSuggestChanges(
   if (!dispatch) return true;
 
   dispatch(
-    state.tr.setMeta(suggestChangesKey, { enabled: !pluginState.enabled }),
+    state.tr.setMeta(suggestChangesKey, {
+      skip: true,
+      enabled: !pluginState.enabled,
+    }),
   );
   return true;
 }
