@@ -187,6 +187,10 @@ export function transformToSuggestionTransaction(
     trackedTransaction.setStoredMarks(originalTransaction.storedMarks);
   }
 
+  // @ts-expect-error Preserve original transaction meta exactly as-is
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  trackedTransaction.meta = originalTransaction.meta;
+
   return trackedTransaction;
 }
 
