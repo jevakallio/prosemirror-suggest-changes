@@ -25,18 +25,17 @@
     "check:types": "tsc",
     "check": "concurrently -P 'npm:check:* {@}' --",
     "clean": "rimraf \"./dist/!(cjs/package.json)\"",
-    "demo": "yarn vite",
-    "demo:build": "yarn vite build --outDir docs --base=/prosemirror-suggest-changes/",
-    "dev": "yarn build -- --watch",
+    "demo": "pnpm run vite",
+    "demo:build": "pnpm run vite build --outDir docs --base=/prosemirror-suggest-changes/",
+    "dev": "pnpm run build -- --watch",
     "fix:format": "prettier --write .",
     "fix:lint": "eslint --cache --fix .",
     "fix:toc": "markdown-toc --bullets='-' -i README.md",
     "fix": "concurrently -P 'npm:fix:* {@}' --",
-    "prepack": "yarn build",
+    "prepack": "pnpm run build",
     "test": "vitest",
     "prepare": "husky"
   },
-  "packageManager": "yarn@4.6.0",
   "devDependencies": {
     "@eslint/compat": "^1.2.7",
     "@eslint/js": "^9.21.0",
@@ -76,5 +75,6 @@
     "prosemirror-state": "^1.0.0",
     "prosemirror-transform": "^1.0.0",
     "prosemirror-view": "^1.0.0"
-  }
+  },
+  "packageManager": "yarn@1.22.19+sha1.4ba7fc5c6e704fce2066ecbfb0b0d8976fe62447"
 }
