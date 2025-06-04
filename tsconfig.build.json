@@ -5,6 +5,7 @@
   "compilerOptions": {
     "noEmit": false,
     "emitDeclarationOnly": true,
-    "incremental": false
+    "incremental": false,
+    "noPropertyAccessFromIndexSignature": false
   }
 }

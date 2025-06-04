@@ -15,9 +15,9 @@ export default {
   // with an array of filenames and expects us to produce an entire command
   // (including filename arguments). Since we just want to run check:types
   // on the whole project, not some specific files, we ignore this file list.
-  "*.{tsx,ts,json}": () => "yarn check:types",
+  "*.{tsx,ts,json}": () => "pnpm check:types",
   // Keep the table of contents up to date in the README file
-  "README.md": () => "yarn fix:toc",
+  "README.md": () => "pnpm fix:toc",
   // For markdown, HTML, and YAML files, we just run Prettier. ESLint doesn't have
   // anything to say about these.
   "*.{md,yml,html,swcrc}": "prettier --write",
