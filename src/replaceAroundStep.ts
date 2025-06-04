@@ -29,7 +29,7 @@ function suggestSetNodeMarkup(
   doc: Node,
   step: ReplaceAroundStep,
   prevSteps: Step[],
-  suggestionId: number,
+  suggestionId: string,
 ) {
   if (
     step.insert === 1 &&
@@ -164,7 +164,7 @@ export function suggestReplaceAroundStep(
   doc: Node,
   step: ReplaceAroundStep,
   prevSteps: Step[],
-  suggestionId: number,
+  suggestionId: string,
 ) {
   const handled = suggestSetNodeMarkup(
     trackedTransaction,

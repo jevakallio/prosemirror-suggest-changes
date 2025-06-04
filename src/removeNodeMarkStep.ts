@@ -17,7 +17,7 @@ export function suggestRemoveNodeMarkStep(
   _doc: Node,
   step: RemoveNodeMarkStep,
   prevSteps: Step[],
-  suggestionId: number,
+  suggestionId: string,
 ) {
   const { modification } = getSuggestionMarks(state.schema);
 

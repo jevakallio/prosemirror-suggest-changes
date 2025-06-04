@@ -46,7 +46,7 @@ export function suggestReplaceStep(
   doc: Node,
   step: ReplaceStep,
   prevSteps: Step[],
-  suggestionId: number,
+  suggestionId: string,
 ) {
   const { deletion, insertion } = getSuggestionMarks(state.schema);
 
@@ -65,8 +65,8 @@ export function suggestReplaceStep(
     ) ?? null;
 
   const markId =
-    (markBefore?.attrs["id"] as number | undefined) ??
-    (markAfter?.attrs["id"] as number | undefined) ??
+    (markBefore?.attrs["id"] as string | undefined) ??
+    (markAfter?.attrs["id"] as string | undefined) ??
     suggestionId;
 
   const insertedRanges: { from: number; to: number }[] = [];

@@ -17,7 +17,7 @@ export function trackAddNodeMarkStep(
   _doc: Node,
   step: AddNodeMarkStep,
   prevSteps: Step[],
-  suggestionId: number,
+  suggestionId: string,
 ) {
   const { modification } = getSuggestionMarks(state.schema);
 

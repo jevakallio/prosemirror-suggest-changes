@@ -24,7 +24,7 @@ function applySuggestionsToTransform(
   tr: Transform,
   markTypeToApply: MarkType,
   markTypeToRevert: MarkType,
-  suggestionId?: number,
+  suggestionId?: string,
   from?: number,
   to?: number,
 ) {
@@ -144,7 +144,7 @@ function revertModifications(node: Node, pos: number, tr: Transform) {
 
 function modificationIsInSet(
   modification: MarkType,
-  id: number | undefined,
+  id: string | undefined,
   marks: readonly Mark[],
 ) {
   const mark = modification.isInSet(marks);
@@ -159,7 +159,7 @@ function applyModificationsToTransform(
   node: Node,
   tr: Transform,
   dir: number,
-  suggestionId?: number,
+  suggestionId?: string,
   from?: number,
   to?: number,
 ) {
@@ -243,6 +243,7 @@ export function applySuggestionsToRange(doc: Node, from: number, to: number) {
     doc,
     transform,
     1,
+    undefined,
     nodeRange.start,
     nodeRange.end,
   );
@@ -281,7 +282,7 @@ export function applySuggestions(
  * The insertion mark and modification mark will be removed, and their
  * contents left in the doc.
  */
-export function applySuggestion(suggestionId: number): Command {
+export function applySuggestion(suggestionId: string): Command {
   return (state, dispatch) => {
     const { deletion, insertion } = getSuggestionMarks(state.schema);
 
@@ -328,7 +329,7 @@ export function revertSuggestions(
  * The deletion mark will be removed, and their contents left in the doc.
  * Modifications tracked in modification marks will be reverted.
  */
-export function revertSuggestion(suggestionId: number): Command {
+export function revertSuggestion(suggestionId: string): Command {
   return (state, dispatch) => {
     const { deletion, insertion } = getSuggestionMarks(state.schema);
 
@@ -351,7 +352,7 @@ export function revertSuggestion(suggestionId: number): Command {
 /**
  * Command that updates the selection to cover an existing change.
  */
-export function selectSuggestion(suggestionId: number): Command {
+export function selectSuggestion(suggestionId: string): Command {
   return (state, dispatch) => {
     const { deletion, insertion, modification } = getSuggestionMarks(
       state.schema,

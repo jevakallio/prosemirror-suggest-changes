@@ -17,7 +17,7 @@ export function trackAttrStep(
   _doc: Node,
   step: AttrStep,
   prevSteps: Step[],
-  suggestionId: number,
+  suggestionId: string,
 ) {
   const { modification } = getSuggestionMarks(state.schema);
 
