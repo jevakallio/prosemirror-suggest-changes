@@ -36,14 +36,14 @@ describe("RemoveMarkStep", () => {
     );
 
     const trackedTransaction = editorState.tr;
-    trackAddMarkStep(trackedTransaction, editorState, doc, step, [], 1);
+    trackAddMarkStep(trackedTransaction, editorState, doc, step, [], "1");
 
     const trackedState = editorState.apply(trackedTransaction);
 
     const expected = testBuilders.doc(
       testBuilders.paragraph(
-        testBuilders.deletion({ id: 1 }, testBuilders.strong("first")),
-        testBuilders.insertion({ id: 1 }, "first"),
+        testBuilders.deletion({ id: "1" }, testBuilders.strong("first")),
+        testBuilders.insertion({ id: "1" }, "first"),
         " paragraph",
       ),
       testBuilders.paragraph("second paragraph"),
@@ -58,7 +58,7 @@ describe("RemoveMarkStep", () => {
   it("should handle overlapping deletions", () => {
     const doc = testBuilders.doc(
       testBuilders.paragraph(
-        testBuilders.deletion({ id: 1 }, testBuilders.strong("<a>fi")),
+        testBuilders.deletion({ id: "1" }, testBuilders.strong("<a>fi")),
         testBuilders.strong("rst<b>"),
         " paragraph",
       ),
@@ -84,14 +84,14 @@ describe("RemoveMarkStep", () => {
     );
 
     const trackedTransaction = editorState.tr;
-    trackAddMarkStep(trackedTransaction, editorState, doc, step, [], 1);
+    trackAddMarkStep(trackedTransaction, editorState, doc, step, [], "1");
 
     const trackedState = editorState.apply(trackedTransaction);
 
     const expected = testBuilders.doc(
       testBuilders.paragraph(
-        testBuilders.deletion({ id: 1 }, testBuilders.strong("first")),
-        testBuilders.insertion({ id: 1 }, "rst"),
+        testBuilders.deletion({ id: "1" }, testBuilders.strong("first")),
+        testBuilders.insertion({ id: "1" }, "rst"),
         " paragraph",
       ),
       testBuilders.paragraph("second paragraph"),

@@ -35,14 +35,14 @@ describe("ReplaceStep", () => {
     originalTransaction.step(step);
 
     const trackedTransaction = editorState.tr;
-    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], 1);
+    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], "1");
 
     const trackedState = editorState.apply(trackedTransaction);
 
     const expected = testBuilders.doc(
       testBuilders.paragraph(
         "initial ",
-        testBuilders.insertion({ id: 1 }, "new"),
+        testBuilders.insertion({ id: "1" }, "new"),
       ),
     );
 
@@ -76,12 +76,15 @@ describe("ReplaceStep", () => {
     originalTransaction.step(step);
 
     const trackedTransaction = editorState.tr;
-    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], 1);
+    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], "1");
 
     const trackedState = editorState.apply(trackedTransaction);
 
     const expected = testBuilders.doc(
-      testBuilders.paragraph("init", testBuilders.deletion({ id: 1 }, "ial ")),
+      testBuilders.paragraph(
+        "init",
+        testBuilders.deletion({ id: "1" }, "ial "),
+      ),
     );
     assert(
       eq(trackedState.doc, expected),
@@ -113,15 +116,15 @@ describe("ReplaceStep", () => {
     originalTransaction.step(step);
 
     const trackedTransaction = editorState.tr;
-    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], 1);
+    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], "1");
 
     const trackedState = editorState.apply(trackedTransaction);
 
     const expected = testBuilders.doc(
       testBuilders.paragraph(
         "init",
-        testBuilders.deletion({ id: 1 }, "ial "),
-        testBuilders.insertion({ id: 1 }, " new"),
+        testBuilders.deletion({ id: "1" }, "ial "),
+        testBuilders.insertion({ id: "1" }, " new"),
       ),
     );
     assert(
@@ -170,7 +173,7 @@ describe("ReplaceStep", () => {
     const trackedTransaction = editorState.tr;
 
     // First, replace the first step
-    suggestReplaceStep(trackedTransaction, editorState, doc, stepOne, [], 1);
+    suggestReplaceStep(trackedTransaction, editorState, doc, stepOne, [], "1");
 
     // Then replace the second step, listing the first to be rebased from
     suggestReplaceStep(
@@ -179,7 +182,7 @@ describe("ReplaceStep", () => {
       trackedTransaction.doc,
       stepTwo,
       [stepOne],
-      2,
+      "2",
     );
 
     const trackedState = editorState.apply(trackedTransaction);
@@ -187,8 +190,8 @@ describe("ReplaceStep", () => {
     const expected = testBuilders.doc(
       testBuilders.paragraph(
         "init",
-        testBuilders.deletion({ id: 1 }, "ial "),
-        testBuilders.insertion({ id: 1 }, " new"),
+        testBuilders.deletion({ id: "1" }, "ial "),
+        testBuilders.insertion({ id: "1" }, " new"),
       ),
     );
     assert(
@@ -222,18 +225,18 @@ describe("ReplaceStep", () => {
     originalTransaction.step(step);
 
     const trackedTransaction = editorState.tr;
-    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], 1);
+    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], "1");
 
     const trackedState = editorState.apply(trackedTransaction);
 
     const expected = testBuilders.doc(
       testBuilders.paragraph(
         "first",
-        testBuilders.deletion({ id: 1 }, " paragraph"),
+        testBuilders.deletion({ id: "1" }, " paragraph"),
       ),
       testBuilders.paragraph(
-        testBuilders.deletion({ id: 1 }, "second"),
-        testBuilders.insertion({ id: 1 }, " and only"),
+        testBuilders.deletion({ id: "1" }, "second"),
+        testBuilders.insertion({ id: "1" }, " and only"),
         " paragraph",
       ),
     );
@@ -247,7 +250,7 @@ describe("ReplaceStep", () => {
     const doc = testBuilders.doc(
       testBuilders.paragraph(
         "init",
-        testBuilders.deletion({ id: 1 }, "ia<a>l "),
+        testBuilders.deletion({ id: "1" }, "ia<a>l "),
       ),
     ) as TaggedNode;
 
@@ -270,15 +273,15 @@ describe("ReplaceStep", () => {
     originalTransaction.step(step);
 
     const trackedTransaction = editorState.tr;
-    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], 2);
+    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], "2");
 
     const trackedState = editorState.apply(trackedTransaction);
 
     const expected = testBuilders.doc(
       testBuilders.paragraph(
         "init",
-        testBuilders.deletion({ id: 1 }, "ial "),
-        testBuilders.insertion({ id: 1 }, " new"),
+        testBuilders.deletion({ id: "1" }, "ial "),
+        testBuilders.insertion({ id: "1" }, " new"),
       ),
     );
     assert(
@@ -291,10 +294,10 @@ describe("ReplaceStep", () => {
     const doc = testBuilders.doc(
       testBuilders.paragraph(
         "first",
-        testBuilders.deletion({ id: 1 }, " para<a>graph"),
+        testBuilders.deletion({ id: "1" }, " para<a>graph"),
       ),
       testBuilders.paragraph(
-        testBuilders.deletion({ id: 1 }, "second"),
+        testBuilders.deletion({ id: "1" }, "second"),
         " paragraph",
       ),
     ) as TaggedNode;
@@ -318,18 +321,18 @@ describe("ReplaceStep", () => {
     originalTransaction.step(step);
 
     const trackedTransaction = editorState.tr;
-    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], 2);
+    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], "2");
 
     const trackedState = editorState.apply(trackedTransaction);
 
     const expected = testBuilders.doc(
       testBuilders.paragraph(
         "first",
-        testBuilders.deletion({ id: 1 }, " paragraph"),
+        testBuilders.deletion({ id: "1" }, " paragraph"),
       ),
       testBuilders.paragraph(
-        testBuilders.deletion({ id: 1 }, "second"),
-        testBuilders.insertion({ id: 1 }, " and only"),
+        testBuilders.deletion({ id: "1" }, "second"),
+        testBuilders.insertion({ id: "1" }, " and only"),
         " paragraph",
       ),
     );
@@ -343,10 +346,10 @@ describe("ReplaceStep", () => {
     const doc = testBuilders.doc(
       testBuilders.paragraph(
         "first",
-        testBuilders.deletion({ id: 1 }, " para<a>graph"),
+        testBuilders.deletion({ id: "1" }, " para<a>graph"),
       ),
       testBuilders.paragraph(
-        testBuilders.deletion({ id: 2 }, "second"),
+        testBuilders.deletion({ id: "2" }, "second"),
         " paragraph",
       ),
     ) as TaggedNode;
@@ -370,18 +373,18 @@ describe("ReplaceStep", () => {
     originalTransaction.step(step);
 
     const trackedTransaction = editorState.tr;
-    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], 3);
+    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], "3");
 
     const trackedState = editorState.apply(trackedTransaction);
 
     const expected = testBuilders.doc(
       testBuilders.paragraph(
         "first",
-        testBuilders.deletion({ id: 1 }, " paragraph"),
-        testBuilders.insertion({ id: 1 }, " and only"),
+        testBuilders.deletion({ id: "1" }, " paragraph"),
+        testBuilders.insertion({ id: "1" }, " and only"),
       ),
       testBuilders.paragraph(
-        testBuilders.deletion({ id: 2 }, "second"),
+        testBuilders.deletion({ id: "2" }, "second"),
         " paragraph",
       ),
     );
@@ -394,9 +397,9 @@ describe("ReplaceStep", () => {
   it("should join deletions that become adjacent", () => {
     const doc = testBuilders.doc(
       testBuilders.paragraph(
-        testBuilders.deletion({ id: 1 }, "in"),
+        testBuilders.deletion({ id: "1" }, "in"),
         "<a>it<b>",
-        testBuilders.deletion({ id: 2 }, "ial "),
+        testBuilders.deletion({ id: "2" }, "ial "),
       ),
     ) as TaggedNode;
 
@@ -419,12 +422,12 @@ describe("ReplaceStep", () => {
     originalTransaction.step(step);
 
     const trackedTransaction = editorState.tr;
-    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], 3);
+    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], "3");
 
     const trackedState = editorState.apply(trackedTransaction);
 
     const expected = testBuilders.doc(
-      testBuilders.paragraph(testBuilders.deletion({ id: 1 }, "initial ")),
+      testBuilders.paragraph(testBuilders.deletion({ id: "1" }, "initial ")),
     );
 
     assert(
@@ -436,9 +439,9 @@ describe("ReplaceStep", () => {
   it("should join insertions that become adjacent to deletions", () => {
     const doc = testBuilders.doc(
       testBuilders.paragraph(
-        testBuilders.deletion({ id: 1 }, "in"),
+        testBuilders.deletion({ id: "1" }, "in"),
         "<a>it<b>",
-        testBuilders.insertion({ id: 2 }, "new"),
+        testBuilders.insertion({ id: "2" }, "new"),
       ),
     ) as TaggedNode;
 
@@ -461,14 +464,14 @@ describe("ReplaceStep", () => {
     originalTransaction.step(step);
 
     const trackedTransaction = editorState.tr;
-    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], 3);
+    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], "3");
 
     const trackedState = editorState.apply(trackedTransaction);
 
     const expected = testBuilders.doc(
       testBuilders.paragraph(
-        testBuilders.deletion({ id: 1 }, "init"),
-        testBuilders.insertion({ id: 1 }, "new"),
+        testBuilders.deletion({ id: "1" }, "init"),
+        testBuilders.insertion({ id: "1" }, "new"),
       ),
     );
 
@@ -481,10 +484,10 @@ describe("ReplaceStep", () => {
   it("should join replacements that become adjacent to deletions", () => {
     const doc = testBuilders.doc(
       testBuilders.paragraph(
-        testBuilders.deletion({ id: 1 }, "in"),
+        testBuilders.deletion({ id: "1" }, "in"),
         "<a>it<b>",
-        testBuilders.deletion({ id: 2 }, "ial "),
-        testBuilders.insertion({ id: 2 }, "new"),
+        testBuilders.deletion({ id: "2" }, "ial "),
+        testBuilders.insertion({ id: "2" }, "new"),
       ),
     ) as TaggedNode;
 
@@ -507,14 +510,14 @@ describe("ReplaceStep", () => {
     originalTransaction.step(step);
 
     const trackedTransaction = editorState.tr;
-    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], 3);
+    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], "3");
 
     const trackedState = editorState.apply(trackedTransaction);
 
     const expected = testBuilders.doc(
       testBuilders.paragraph(
-        testBuilders.deletion({ id: 1 }, "initial "),
-        testBuilders.insertion({ id: 1 }, "new"),
+        testBuilders.deletion({ id: "1" }, "initial "),
+        testBuilders.insertion({ id: "1" }, "new"),
       ),
     );
 
@@ -528,10 +531,10 @@ describe("ReplaceStep", () => {
     const doc = testBuilders.doc(
       testBuilders.paragraph(
         "first",
-        testBuilders.deletion({ id: 1 }, " paragraph<a>"),
+        testBuilders.deletion({ id: "1" }, " paragraph<a>"),
       ),
       testBuilders.paragraph(
-        testBuilders.deletion({ id: 2 }, "<b>second"),
+        testBuilders.deletion({ id: "2" }, "<b>second"),
         " paragraph",
       ),
     ) as TaggedNode;
@@ -555,17 +558,17 @@ describe("ReplaceStep", () => {
     originalTransaction.step(step);
 
     const trackedTransaction = editorState.tr;
-    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], 3);
+    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], "3");
 
     const trackedState = editorState.apply(trackedTransaction);
 
     const expected = testBuilders.doc(
       testBuilders.paragraph(
         "first",
-        testBuilders.deletion({ id: 1 }, " paragraph"),
+        testBuilders.deletion({ id: "1" }, " paragraph"),
       ),
       testBuilders.paragraph(
-        testBuilders.deletion({ id: 1 }, "second"),
+        testBuilders.deletion({ id: "1" }, "second"),
         " paragraph",
       ),
     );
@@ -605,17 +608,17 @@ describe("ReplaceStep", () => {
     originalTransaction.step(step);
 
     const trackedTransaction = editorState.tr;
-    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], 1);
+    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], "1");
 
     const trackedState = editorState.apply(trackedTransaction);
 
     const expected = testBuilders.doc(
       testBuilders.paragraph(
         "first paragraph",
-        testBuilders.deletion({ id: 1 }, "\u200B"),
+        testBuilders.deletion({ id: "1" }, "\u200B"),
       ),
       testBuilders.paragraph(
-        testBuilders.deletion({ id: 1 }, "\u200B"),
+        testBuilders.deletion({ id: "1" }, "\u200B"),
         "second paragraph",
       ),
     );
@@ -630,10 +633,10 @@ describe("ReplaceStep", () => {
     const doc = testBuilders.doc(
       testBuilders.paragraph(
         "first paragraph",
-        testBuilders.deletion({ id: 1 }, "\u200B"),
+        testBuilders.deletion({ id: "1" }, "\u200B"),
       ),
       testBuilders.paragraph(
-        testBuilders.deletion({ id: 1 }, "\u200B"),
+        testBuilders.deletion({ id: "1" }, "\u200B"),
         "<a>second<b> paragraph",
       ),
     ) as TaggedNode;
@@ -661,17 +664,17 @@ describe("ReplaceStep", () => {
     originalTransaction.step(step);
 
     const trackedTransaction = editorState.tr;
-    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], 1);
+    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], "1");
 
     const trackedState = editorState.apply(trackedTransaction);
 
     const expected = testBuilders.doc(
       testBuilders.paragraph(
         "first paragraph",
-        testBuilders.deletion({ id: 1 }, "\u200B"),
+        testBuilders.deletion({ id: "1" }, "\u200B"),
       ),
       testBuilders.paragraph(
-        testBuilders.deletion({ id: 1 }, "second"),
+        testBuilders.deletion({ id: "1" }, "second"),
         " paragraph",
       ),
     );
@@ -715,17 +718,17 @@ describe("ReplaceStep", () => {
     originalTransaction.step(step);
 
     const trackedTransaction = editorState.tr;
-    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], 1);
+    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], "1");
 
     const trackedState = editorState.apply(trackedTransaction);
 
     const expected = testBuilders.doc(
       testBuilders.paragraph(
         "first ",
-        testBuilders.insertion({ id: 1 }, "\u200B"),
+        testBuilders.insertion({ id: "1" }, "\u200B"),
       ),
       testBuilders.paragraph(
-        testBuilders.insertion({ id: 1 }, "\u200B"),
+        testBuilders.insertion({ id: "1" }, "\u200B"),
         "paragraph",
       ),
       testBuilders.paragraph("second paragraph"),

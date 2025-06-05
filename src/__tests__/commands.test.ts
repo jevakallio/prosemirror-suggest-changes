@@ -18,13 +18,13 @@ describe("applyTrackedChanges", () => {
     const doc = testBuilders.doc(
       testBuilders.paragraph(
         "fir",
-        testBuilders.deletion({ id: 1 }, "st"),
-        testBuilders.insertion({ id: 1 }, "e"),
+        testBuilders.deletion({ id: "1" }, "st"),
+        testBuilders.insertion({ id: "1" }, "e"),
         " paragraph",
       ),
       testBuilders.modification(
         {
-          id: 3,
+          id: "3",
           type: "attr",
           attrName: "src",
           previousValue: "https://dskrpt.de/test-image",
@@ -34,9 +34,27 @@ describe("applyTrackedChanges", () => {
       ),
       testBuilders.paragraph(
         "sec",
-        testBuilders.deletion({ id: 2 }, "ond"),
-        testBuilders.insertion({ id: 2 }, "undo"),
+        testBuilders.deletion({ id: "2" }, "ond"),
+        testBuilders.insertion({ id: "2" }, "undo"),
         " paragraph",
+      ),
+      testBuilders.modification(
+        {
+          id: "4",
+          type: "nodeType",
+          previousValue: "paragraph",
+          newValue: "heading",
+        },
+        testBuilders.modification(
+          {
+            id: "4",
+            type: "attr",
+            attrName: "level",
+            previousValue: 1,
+            newValue: 2,
+          },
+          testBuilders.heading({ level: 2 }, "third paragraph"),
+        ),
       ),
     );
 
@@ -54,6 +72,7 @@ describe("applyTrackedChanges", () => {
       testBuilders.paragraph("fire paragraph"),
       testBuilders.image({ src: "https://dskrpt.de/test-image-2" }),
       testBuilders.paragraph("secundo paragraph"),
+      testBuilders.heading({ level: 2 }, "third paragraph"),
     );
 
     assert(
@@ -66,10 +85,10 @@ describe("applyTrackedChanges", () => {
     const doc = testBuilders.doc(
       testBuilders.paragraph(
         "first ",
-        testBuilders.deletion({ id: 1 }, "paragraph"),
+        testBuilders.deletion({ id: "1" }, "paragraph"),
       ),
       testBuilders.paragraph(
-        testBuilders.deletion({ id: 1 }, "second "),
+        testBuilders.deletion({ id: "1" }, "second "),
         "paragraph",
       ),
     );
@@ -100,14 +119,14 @@ describe("applyTrackedChange", () => {
     const doc = testBuilders.doc(
       testBuilders.paragraph(
         "fir",
-        testBuilders.deletion({ id: 1 }, "st"),
-        testBuilders.insertion({ id: 1 }, "e"),
+        testBuilders.deletion({ id: "1" }, "st"),
+        testBuilders.insertion({ id: "1" }, "e"),
         " paragraph",
       ),
       testBuilders.paragraph(
         "sec",
-        testBuilders.deletion({ id: 2 }, "ond"),
-        testBuilders.insertion({ id: 2 }, "undo"),
+        testBuilders.deletion({ id: "2" }, "ond"),
+        testBuilders.insertion({ id: "2" }, "undo"),
         " paragraph",
       ),
     );
@@ -117,7 +136,7 @@ describe("applyTrackedChange", () => {
     });
 
     const newState = await new Promise<EditorState>((resolve) => {
-      applySuggestion(1)(editorState, (tr) => {
+      applySuggestion("1")(editorState, (tr) => {
         resolve(editorState.apply(tr));
       });
     });
@@ -126,8 +145,8 @@ describe("applyTrackedChange", () => {
       testBuilders.paragraph("fire paragraph"),
       testBuilders.paragraph(
         "sec",
-        testBuilders.deletion({ id: 2 }, "ond"),
-        testBuilders.insertion({ id: 2 }, "undo"),
+        testBuilders.deletion({ id: "2" }, "ond"),
+        testBuilders.insertion({ id: "2" }, "undo"),
         " paragraph",
       ),
     );
@@ -144,13 +163,13 @@ describe("revertTrackedChanges", () => {
     const doc = testBuilders.doc(
       testBuilders.paragraph(
         "fir",
-        testBuilders.deletion({ id: 1 }, "st"),
-        testBuilders.insertion({ id: 1 }, "e"),
+        testBuilders.deletion({ id: "1" }, "st"),
+        testBuilders.insertion({ id: "1" }, "e"),
         " paragraph",
       ),
       testBuilders.modification(
         {
-          id: 3,
+          id: "3",
           type: "attr",
           attrName: "src",
           previousValue: "https://dskrpt.de/test-image",
@@ -160,9 +179,27 @@ describe("revertTrackedChanges", () => {
       ),
       testBuilders.paragraph(
         "sec",
-        testBuilders.deletion({ id: 2 }, "ond"),
-        testBuilders.insertion({ id: 2 }, "undo"),
+        testBuilders.deletion({ id: "2" }, "ond"),
+        testBuilders.insertion({ id: "2" }, "undo"),
         " paragraph",
+      ),
+      testBuilders.modification(
+        {
+          id: "4",
+          type: "nodeType",
+          previousValue: "paragraph",
+          newValue: "heading",
+        },
+        testBuilders.modification(
+          {
+            id: "4",
+            type: "attr",
+            attrName: "level",
+            previousValue: 1,
+            newValue: 2,
+          },
+          testBuilders.heading({ level: 2 }, "third paragraph"),
+        ),
       ),
     );
 
@@ -180,6 +217,7 @@ describe("revertTrackedChanges", () => {
       testBuilders.paragraph("first paragraph"),
       testBuilders.image({ src: "https://dskrpt.de/test-image" }),
       testBuilders.paragraph("second paragraph"),
+      testBuilders.paragraph("third paragraph"),
     );
 
     assert(
@@ -192,10 +230,10 @@ describe("revertTrackedChanges", () => {
     const doc = testBuilders.doc(
       testBuilders.paragraph(
         "first ",
-        testBuilders.insertion({ id: 1 }, "paragraph"),
+        testBuilders.insertion({ id: "1" }, "paragraph"),
       ),
       testBuilders.paragraph(
-        testBuilders.insertion({ id: 1 }, "second "),
+        testBuilders.insertion({ id: "1" }, "second "),
         "paragraph",
       ),
     );
@@ -226,14 +264,14 @@ describe("revertTrackedChange", () => {
     const doc = testBuilders.doc(
       testBuilders.paragraph(
         "fir",
-        testBuilders.deletion({ id: 1 }, "st"),
-        testBuilders.insertion({ id: 1 }, "e"),
+        testBuilders.deletion({ id: "1" }, "st"),
+        testBuilders.insertion({ id: "1" }, "e"),
         " paragraph",
       ),
       testBuilders.paragraph(
         "sec",
-        testBuilders.deletion({ id: 2 }, "ond"),
-        testBuilders.insertion({ id: 2 }, "undo"),
+        testBuilders.deletion({ id: "2" }, "ond"),
+        testBuilders.insertion({ id: "2" }, "undo"),
         " paragraph",
       ),
     );
@@ -243,7 +281,7 @@ describe("revertTrackedChange", () => {
     });
 
     const newState = await new Promise<EditorState>((resolve) => {
-      revertSuggestion(1)(editorState, (tr) => {
+      revertSuggestion("1")(editorState, (tr) => {
         resolve(editorState.apply(tr));
       });
     });
@@ -252,8 +290,8 @@ describe("revertTrackedChange", () => {
       testBuilders.paragraph("first paragraph"),
       testBuilders.paragraph(
         "sec",
-        testBuilders.deletion({ id: 2 }, "ond"),
-        testBuilders.insertion({ id: 2 }, "undo"),
+        testBuilders.deletion({ id: "2" }, "ond"),
+        testBuilders.insertion({ id: "2" }, "undo"),
         " paragraph",
       ),
     );

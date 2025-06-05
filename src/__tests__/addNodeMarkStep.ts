@@ -37,14 +37,14 @@ describe("AddNodeMarkStep", () => {
     );
 
     const trackedTransaction = editorState.tr;
-    trackAddNodeMarkStep(trackedTransaction, editorState, doc, step, [], 1);
+    trackAddNodeMarkStep(trackedTransaction, editorState, doc, step, [], "1");
 
     const trackedState = editorState.apply(trackedTransaction);
 
     const expected = testBuilders.doc(
       testBuilders.modification(
         {
-          id: 1,
+          id: "1",
           type: "mark",
           previousValue: null,
           newValue: step.mark.toJSON(),
@@ -67,7 +67,7 @@ describe("AddNodeMarkStep", () => {
     const doc = testBuilders.doc(
       testBuilders.modification(
         {
-          id: 1,
+          id: "1",
           type: "mark",
           previousValue: null,
           newValue: testBuilders.schema.marks.difficulty
@@ -104,14 +104,14 @@ describe("AddNodeMarkStep", () => {
     );
 
     const trackedTransaction = editorState.tr;
-    trackAddNodeMarkStep(trackedTransaction, editorState, doc, step, [], 1);
+    trackAddNodeMarkStep(trackedTransaction, editorState, doc, step, [], "1");
 
     const trackedState = editorState.apply(trackedTransaction);
 
     const expected = testBuilders.doc(
       testBuilders.modification(
         {
-          id: 1,
+          id: "1",
           type: "mark",
           previousValue: null,
           newValue: step.mark.toJSON(),
@@ -159,14 +159,14 @@ describe("AddNodeMarkStep", () => {
     );
 
     const trackedTransaction = editorState.tr;
-    trackAddNodeMarkStep(trackedTransaction, editorState, doc, step, [], 1);
+    trackAddNodeMarkStep(trackedTransaction, editorState, doc, step, [], "1");
 
     const trackedState = editorState.apply(trackedTransaction);
 
     const expected = testBuilders.doc(
       testBuilders.modification(
         {
-          id: 1,
+          id: "1",
           type: "mark",
           previousValue: testBuilders.schema.marks.difficulty
             .create({ level: "beginner" })

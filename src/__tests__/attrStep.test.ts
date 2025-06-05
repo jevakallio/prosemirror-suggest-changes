@@ -31,14 +31,14 @@ describe("AttrStep", () => {
     assert(step instanceof AttrStep, "Could not create test AttrStep");
 
     const trackedTransaction = editorState.tr;
-    trackAttrStep(trackedTransaction, editorState, doc, step, [], 1);
+    trackAttrStep(trackedTransaction, editorState, doc, step, [], "1");
 
     const trackedState = editorState.apply(trackedTransaction);
 
     const expected = testBuilders.doc(
       testBuilders.modification(
         {
-          id: 1,
+          id: "1",
           type: "attr",
           attrName: "src",
           previousValue: "https://dskrpt.de/test-image",
@@ -58,7 +58,7 @@ describe("AttrStep", () => {
     const doc = testBuilders.doc(
       testBuilders.modification(
         {
-          id: 1,
+          id: "1",
           type: "attr",
           attrName: "src",
           previousValue: "https://dskrpt.de/test-image",
@@ -84,14 +84,14 @@ describe("AttrStep", () => {
     assert(step instanceof AttrStep, "Could not create test AttrStep");
 
     const trackedTransaction = editorState.tr;
-    trackAttrStep(trackedTransaction, editorState, doc, step, [], 1);
+    trackAttrStep(trackedTransaction, editorState, doc, step, [], "1");
 
     const trackedState = editorState.apply(trackedTransaction);
 
     const expected = testBuilders.doc(
       testBuilders.modification(
         {
-          id: 1,
+          id: "1",
           type: "attr",
           attrName: "src",
           previousValue: "https://dskrpt.de/test-image-2",

@@ -45,7 +45,7 @@ describe("RemoveNodeMarkStep", () => {
       doc,
       step,
       [],
-      1,
+      "1",
     );
 
     const trackedState = editorState.apply(trackedTransaction);
@@ -53,7 +53,7 @@ describe("RemoveNodeMarkStep", () => {
     const expected = testBuilders.doc(
       testBuilders.modification(
         {
-          id: 1,
+          id: "1",
           type: "mark",
           previousValue: step.mark.toJSON(),
           newValue: null,
@@ -73,7 +73,7 @@ describe("RemoveNodeMarkStep", () => {
     const doc = testBuilders.doc(
       testBuilders.modification(
         {
-          id: 1,
+          id: "1",
           type: "mark",
           previousValue: null,
           newValue: testBuilders.schema.marks.difficulty
@@ -116,7 +116,7 @@ describe("RemoveNodeMarkStep", () => {
       doc,
       step,
       [],
-      1,
+      "1",
     );
 
     const trackedState = editorState.apply(trackedTransaction);
