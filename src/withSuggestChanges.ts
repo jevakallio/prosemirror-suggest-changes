@@ -219,6 +219,7 @@ export function withSuggestChanges(
       isSuggestChangesEnabled(this.state) &&
       !tr.getMeta("history$") &&
       !tr.getMeta("collab$") &&
+      !tr.getMeta("y-sync$")?.isUndoRedoOperation &&
       !("skip" in (tr.getMeta(suggestChangesKey) ?? {}))
         ? transformToSuggestionTransaction(tr, this.state)
         : tr;
