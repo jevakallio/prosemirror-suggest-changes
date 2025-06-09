@@ -11,9 +11,12 @@ export {
   revertSuggestions,
   applySuggestion,
   applySuggestions,
+  applySuggestionsToSlice,
+  createSuggestionTransaction,
   enableSuggestChanges,
   disableSuggestChanges,
   toggleSuggestChanges,
+  asSuggestionCommand,
 } from "./commands.js";
 
 export {

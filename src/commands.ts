@@ -9,12 +9,14 @@ import {
   type Command,
   type EditorState,
   TextSelection,
+  type Transaction,
 } from "prosemirror-state";
 import { Transform } from "prosemirror-transform";
 import { type EditorView } from "prosemirror-view";
 
 import { findSuggestionMarkEnd } from "./findSuggestionMarkEnd.js";
-import { suggestChangesKey } from "./plugin.js";
+import { suggestChangesKey, getSuggestChangesGenerateId } from "./plugin.js";
+import { getStepHandler } from "./withSuggestChanges.js";
 
 /**
  * Given a node and a transform, add a set of steps to the
@@ -443,4 +445,188 @@ export function toggleSuggestChanges(
     }),
   );
   return true;
+}
+
+/**
+ * Create a suggestion transaction from a regular transaction.
+ *
+ * This function converts a standard ProseMirror transaction into one that
+ * tracks changes as suggestions instead of applying them directly. This is
+ * useful for programmatically creating suggestions outside of the normal
+ * plugin flow.
+ *
+ * @param originalTransaction - The transaction to convert to suggestions
+ * @param state - The current editor state
+ * @param suggestionId - Optional custom ID for all suggestions in this transaction.
+ *                      If not provided, will use the plugin's generateId function
+ *                      or fall back to a default generator.
+ * @returns A new transaction that tracks changes as suggestions
+ *
+ * @example
+ * ```typescript
+ * // Create a transaction that deletes and inserts as suggestions
+ * const tr = state.tr.delete(10, 20).insert(15, "new text");
+ * const suggestionTr = createSuggestionTransaction(tr, state, "my-edit-123");
+ * dispatch(suggestionTr);
+ * ```
+ */
+export function createSuggestionTransaction(
+  originalTransaction: Transaction,
+  state: EditorState,
+  suggestionId?: string,
+): Transaction {
+  const { deletion, insertion, modification } = state.schema.marks;
+  if (!deletion) {
+    throw new Error(
+      `Failed to create suggestion transaction: schema does not contain deletion mark. Did you forget to add it?`,
+    );
+  }
+  if (!insertion) {
+    throw new Error(
+      `Failed to create suggestion transaction: schema does not contain insertion mark. Did you forget to add it?`,
+    );
+  }
+  if (!modification) {
+    throw new Error(
+      `Failed to create suggestion transaction: schema does not contain modification mark. Did you forget to add it?`,
+    );
+  }
+
+  // If no custom suggestion ID is provided, try to get the generator from plugin state
+  let generateId: () => string;
+  if (suggestionId) {
+    // Use the provided ID for all operations in this transaction
+    generateId = () => suggestionId;
+  } else {
+    try {
+      // Try to get the generateId function from the plugin state
+      generateId = getSuggestChangesGenerateId(state);
+    } catch {
+      // Fallback to a simple generator if plugin is not available
+      generateId = () => {
+        const timestamp = Date.now().toString();
+        const randomStr = Math.random().toString(36).substring(2, 9);
+        return `suggestion-${timestamp}-${randomStr}`;
+      };
+    }
+  }
+
+  // Create a new transaction from scratch. The original transaction
+  // is going to be dropped in favor of this one.
+  const trackedTransaction = state.tr;
+
+  for (let i = 0; i < originalTransaction.steps.length; i++) {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const step = originalTransaction.steps[i]!;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const doc = originalTransaction.docs[i]!;
+
+    const stepTracker = getStepHandler(step);
+
+    // Generate a new unique ID for this step (or use the provided one)
+    const stepSuggestionId = generateId();
+
+    stepTracker(
+      trackedTransaction,
+      state,
+      doc,
+      step,
+      originalTransaction.steps.slice(0, i),
+      stepSuggestionId,
+    );
+  }
+
+  // Preserve other transaction properties
+  if (originalTransaction.selectionSet && !trackedTransaction.selectionSet) {
+    const originalBaseDoc = originalTransaction.docs[0];
+    const base = originalBaseDoc
+      ? originalTransaction.selection.map(
+          originalBaseDoc,
+          originalTransaction.mapping.invert(),
+        )
+      : originalTransaction.selection;
+
+    trackedTransaction.setSelection(
+      base.map(trackedTransaction.doc, trackedTransaction.mapping),
+    );
+  }
+
+  if (originalTransaction.scrolledIntoView) {
+    trackedTransaction.scrollIntoView();
+  }
+
+  if (originalTransaction.storedMarksSet) {
+    trackedTransaction.setStoredMarks(originalTransaction.storedMarks);
+  }
+
+  // Copy over metadata, but mark this as a suggestion transaction
+  // @ts-expect-error Preserve original transaction meta exactly as-is
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  trackedTransaction.meta = { ...originalTransaction.meta };
+
+  // Mark this transaction to skip further processing by withSuggestChanges
+  trackedTransaction.setMeta(suggestChangesKey, { skip: true });
+
+  return trackedTransaction;
+}
+
+/**
+ * Converts any ProseMirror command into a suggestion-generating version.
+ *
+ * This decorator wraps a regular ProseMirror command so that when executed,
+ * it will create suggestions instead of directly applying changes.
+ *
+ * @param command - The ProseMirror command to wrap
+ * @param suggestionId - Optional custom ID for suggestions created by this command
+ * @returns A new command that creates suggestions
+ *
+ * @example
+ * ```typescript
+ * import { deleteSelection } from 'prosemirror-commands';
+ *
+ * const suggestDeleteCommand = asSuggestionCommand(deleteSelection, "delete-123");
+ * suggestDeleteCommand(state, dispatch);
+ * ```
+ */
+export function asSuggestionCommand<T extends Command>(
+  command: T,
+  suggestionId?: string,
+): T {
+  return ((
+    state: EditorState,
+    dispatch?: EditorView["dispatch"],
+    view?: EditorView,
+  ) => {
+    if (!dispatch) {
+      // For .can() checks, just run the original command without dispatch
+      return command(state, undefined, view);
+    }
+
+    // Create a temporary transaction to capture what the command would do
+    let tempTransaction = state.tr;
+    let commandResult = false;
+
+    const tempDispatch = (tr: Transaction) => {
+      tempTransaction = tr;
+      commandResult = true;
+    };
+
+    // Run the command with our temporary dispatch
+    const result = command(state, tempDispatch, view);
+
+    if (!result || !commandResult || !tempTransaction.docChanged) {
+      // If command failed or made no changes, just run it normally
+      return command(state, dispatch, view);
+    }
+
+    // Convert the captured transaction to a suggestion transaction
+    const suggestionTransaction = createSuggestionTransaction(
+      tempTransaction,
+      state,
+      suggestionId,
+    );
+
+    dispatch(suggestionTransaction);
+    return true;
+  }) as T;
 }

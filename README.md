@@ -24,29 +24,33 @@ yarn add @handlewithcare/prosemirror-suggest-changes prosemirror-view prosemirro
 
 <!-- toc -->
 
-- [Usage](#usage)
-- [How it works](#how-it-works)
-- [API](#api)
-  - [Schema](#schema)
-    - [`insertion`](#insertion)
-    - [`deletion`](#deletion)
-    - [`modification`](#modification)
-    - [`addSuggestionMarks`](#addsuggestionmarks)
-  - [Commands](#commands)
-    - [`selectSuggestion`](#selectsuggestion)
-    - [`revertSuggestion`](#revertsuggestion)
-    - [`revertSuggestions`](#revertsuggestions)
-    - [`applySuggestion`](#applysuggestion)
-    - [`applySuggestions`](#applysuggestions)
-    - [`enableSuggestChanges`](#enablesuggestchanges)
-    - [`disableSuggestChanges`](#disablesuggestchanges)
-    - [`toggleSuggestChanges`](#togglesuggestchanges)
-  - [Plugin](#plugin)
-    - [`suggestChanges`](#suggestchanges)
-    - [`suggestChangesKey`](#suggestchangeskey)
-    - [`isSuggestChangesEnabled`](#issuggestchangesenabled)
-  - [`dispatchTransaction` Decorator](#dispatchtransaction-decorator)
-    - [`withSuggestChanges`](#withsuggestchanges)
+- [@handlewithcare/prosemirror-suggest-changes](#handlewithcareprosemirror-suggest-changes)
+  - [Installation](#installation)
+  - [Usage](#usage)
+  - [How it works](#how-it-works)
+  - [API](#api)
+    - [Schema](#schema)
+      - [`insertion`](#insertion)
+      - [`deletion`](#deletion)
+      - [`modification`](#modification)
+      - [`addSuggestionMarks`](#addsuggestionmarks)
+    - [Commands](#commands)
+      - [`selectSuggestion`](#selectsuggestion)
+      - [`revertSuggestion`](#revertsuggestion)
+      - [`revertSuggestions`](#revertsuggestions)
+      - [`applySuggestion`](#applysuggestion)
+      - [`applySuggestions`](#applysuggestions)
+      - [`enableSuggestChanges`](#enablesuggestchanges)
+      - [`disableSuggestChanges`](#disablesuggestchanges)
+      - [`toggleSuggestChanges`](#togglesuggestchanges)
+      - [`createSuggestionTransaction`](#createsuggestiontransaction)
+      - [`asSuggestionCommand`](#assuggestioncommand)
+    - [Plugin](#plugin)
+      - [`suggestChanges`](#suggestchanges)
+      - [`suggestChangesKey`](#suggestchangeskey)
+      - [`isSuggestChangesEnabled`](#issuggestchangesenabled)
+    - [`dispatchTransaction` Decorator](#dispatchtransaction-decorator)
+      - [`withSuggestChanges`](#withsuggestchanges)
 
 <!-- tocstop -->
 
@@ -106,7 +110,7 @@ const view = new EditorView(editorEl, {
 ```
 
 And finally, use the commands to control the suggest changes state, apply
-suggestions, and revert suggestions. Here’s a sample view plugin that renders a
+suggestions, and revert suggestions. Here's a sample view plugin that renders a
 simple menu with some suggestion-related commands:
 
 ```ts
@@ -337,6 +341,45 @@ Command that toggles suggest changes on or off
 
 ```ts
 const toggleSuggestChanges: Command;
+```
+
+#### `createSuggestionTransaction`
+
+Create a suggestion transaction from a regular transaction. This allows you to
+programmatically create suggestions instead of applying changes directly.
+
+```ts
+function createSuggestionTransaction(
+  originalTransaction: Transaction,
+  state: EditorState,
+  suggestionId?: string,
+): Transaction;
+```
+
+```js
+// Example: Create a transaction that replaces text as a suggestion
+const tr = state.tr.delete(10, 20).insertText("new text", 10);
+const suggestionTr = createSuggestionTransaction(tr, state, "edit-123");
+dispatch(suggestionTr);
+```
+
+#### `asSuggestionCommand`
+
+Converts any ProseMirror command into a suggestion-generating version.
+
+```ts
+function asSuggestionCommand<T extends Command>(
+  command: T,
+  suggestionId?: string,
+): T;
+```
+
+```js
+import { deleteSelection } from "prosemirror-commands";
+
+// Convert a command to create suggestions
+const suggestDeleteCommand = asSuggestionCommand(deleteSelection, "delete-123");
+suggestDeleteCommand(state, dispatch);
 ```
 
 ### Plugin

@@ -1,5 +1,5 @@
 {
-  "name": "@handlewithcare/prosemirror-suggest-changes",
+  "name": "@marker/prosemirror-suggest-changes",
   "version": "0.1.4",
   "license": "MIT",
   "type": "module",

@@ -34,7 +34,7 @@ type StepHandler<S extends Step> = (
   suggestionId: string,
 ) => boolean;
 
-function getStepHandler<S extends Step>(step: S): StepHandler<S> {
+export function getStepHandler<S extends Step>(step: S): StepHandler<S> {
   if (step instanceof ReplaceStep) {
     return suggestReplaceStep as unknown as StepHandler<S>;
   }
