@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { testBuilders } from "../testing/testBuilders.js";
 import { suggestChanges } from "../plugin.js";
 import { transformToSuggestionTransaction } from "../withSuggestChanges.js";
+import { nodeSizeErrorJSON, nodeSizeErrorSteps } from "./nodeSizeError.js";
 
 const steps = [
   {
@@ -73,6 +74,45 @@ describe("withSuggestChanges", () => {
     const originalTrState = editorState.apply(originalTransaction);
     expect(originalTrState.doc.textContent).toEqual(
       "This is a WORK paragraph.This is a WORK WORK paragraph.",
+    );
+    const suggestedTr = transformToSuggestionTransaction(
+      originalTransaction,
+      editorState,
+    );
+    const newState = editorState.apply(suggestedTr);
+    // Should pass without error
+    expect(newState.doc.toJSON()).not.toEqual(doc.toJSON());
+  });
+  it("shouldn't throw nodeSize errors on multiline edits", () => {
+    // should match initialJson
+    const doc = testBuilders.doc(
+      testBuilders.paragraph({ id: null }, "test test"),
+      testBuilders.paragraph({ id: null }, "test test"),
+    );
+
+    expect(doc.toJSON()).toEqual(nodeSizeErrorJSON);
+
+    const end = TextSelection.atEnd(doc);
+    const trSteps = nodeSizeErrorSteps.map((step) =>
+      Step.fromJSON(doc.type.schema, step),
+    );
+    const editorState = EditorState.create({
+      doc,
+      selection: end,
+      plugins: [suggestChanges()],
+    });
+
+    const originalTransaction = editorState.tr;
+    trSteps.forEach((s) => {
+      originalTransaction.step(s);
+    });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    expect(originalTransaction.steps.map((s) => s.toJSON())).toEqual(
+      nodeSizeErrorSteps,
+    );
+    const originalTrState = editorState.apply(originalTransaction);
+    expect(originalTrState.doc.textContent).toEqual(
+      "WORKKKKKKK WORKKKKKKKWORKKKKKKK WORKKKKKKK",
     );
     const suggestedTr = transformToSuggestionTransaction(
       originalTransaction,

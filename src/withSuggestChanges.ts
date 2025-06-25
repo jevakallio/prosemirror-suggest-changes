@@ -70,6 +70,7 @@ function getStepHandler<S extends Step>(step: S): StepHandler<S> {
     prevSteps: Step[],
   ) => {
     const reset = prevSteps
+      .slice()
       .reverse()
       .reduce<Step | null>(
         (acc, step) => acc?.map(step.getMap().invert()) ?? null,
@@ -206,6 +207,7 @@ export function withSuggestChanges(
       isSuggestChangesEnabled(this.state) &&
       !tr.getMeta("history$") &&
       !tr.getMeta("collab$") &&
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       !tr.getMeta("y-sync$")?.isUndoRedoOperation &&
       !("skip" in (tr.getMeta(suggestChangesKey) ?? {}))
         ? transformToSuggestionTransaction(tr, this.state)
