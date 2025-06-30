@@ -203,12 +203,17 @@ export function withSuggestChanges(
     };
 
   return function dispatchTransaction(this: EditorView, tr: Transaction) {
+    const ySyncMeta = (tr.getMeta("y-sync$") ?? {}) as {
+      isUndoRedoOperation?: boolean;
+      isChangeOrigin?: boolean;
+    };
+
     const transaction =
       isSuggestChangesEnabled(this.state) &&
       !tr.getMeta("history$") &&
       !tr.getMeta("collab$") &&
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      !tr.getMeta("y-sync$")?.isUndoRedoOperation &&
+      !ySyncMeta.isUndoRedoOperation &&
+      !ySyncMeta.isChangeOrigin &&
       !("skip" in (tr.getMeta(suggestChangesKey) ?? {}))
         ? transformToSuggestionTransaction(tr, this.state)
         : tr;
