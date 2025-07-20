@@ -56,9 +56,6 @@ function getStepHandler<S extends Step>(step: S): StepHandler<S> {
   if (step instanceof AttrStep) {
     return trackAttrStep as unknown as StepHandler<S>;
   }
-  if (step instanceof AddNodeMarkStep) {
-    return trackAddNodeMarkStep as unknown as StepHandler<S>;
-  }
 
   // Default handler — simply rebase the step onto the
   // tracked transaction and apply it.
