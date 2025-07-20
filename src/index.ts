@@ -29,3 +29,7 @@ export {
   withSuggestChanges,
   transformToSuggestionTransaction,
 } from "./withSuggestChanges.js";
+
+export { getSuggestionMarks, type SuggestionMarks } from "./utils.js";
+
+export { getSuggestionDecorations } from "./decorations.js";

@@ -9,6 +9,7 @@ import {
 
 import { applySuggestionsToSlice } from "./commands.js";
 import { suggestReplaceStep } from "./replaceStep.js";
+import { getSuggestionMarks } from "./utils.js";
 
 /**
  * Transform an add mark step into its equivalent tracked steps.
@@ -29,7 +30,7 @@ export function trackAddMarkStep(
   if (!applied) return false;
 
   // Check if the entire range is within a single existing suggestion
-  const { insertion, deletion } = state.schema.marks;
+  const { insertion, deletion } = getSuggestionMarks(state.schema);
   const $from = doc.resolve(step.from);
   const $to = doc.resolve(step.to);
 

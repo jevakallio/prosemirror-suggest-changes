@@ -24,6 +24,7 @@ import {
   getSuggestChangesGenerateId,
   suggestChangesKey,
 } from "./plugin.js";
+import { getSuggestionMarks } from "./utils.js";
 
 type StepHandler<S extends Step> = (
   trackedTransaction: Transaction,
@@ -100,22 +101,8 @@ export function transformToSuggestionTransaction(
   originalTransaction: Transaction,
   state: EditorState,
 ) {
-  const { deletion, insertion, modification } = state.schema.marks;
-  if (!deletion) {
-    throw new Error(
-      `Failed to transform to suggestion: schema does not contain deletion mark. Did you forget to add it?`,
-    );
-  }
-  if (!insertion) {
-    throw new Error(
-      `Failed to transform to suggestion: schema does not contain insertion mark. Did you forget to add it?`,
-    );
-  }
-  if (!modification) {
-    throw new Error(
-      `Failed to transform to suggestion: schema does not contain modification mark. Did you forget to add it?`,
-    );
-  }
+  // Validate that all required marks exist in the schema
+  getSuggestionMarks(state.schema);
 
   // Get the generateId function from the plugin state
   const generateId = getSuggestChangesGenerateId(state);
