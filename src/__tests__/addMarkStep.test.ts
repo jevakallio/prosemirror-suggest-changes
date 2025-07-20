@@ -150,4 +150,217 @@ describe("AddMarkStep", () => {
       `Expected ${finalState.doc} to match ${expected}`,
     );
   });
+
+  it("should handle left-side partial overlap of mark on existing suggestion", () => {
+    // Existing suggestion spans "test paragraph"
+    const doc = testBuilders.doc(
+      testBuilders.paragraph(
+        "This is <a>a ",
+        testBuilders.deletion({ id: "1" }, "test paragraph"),
+        testBuilders.insertion(
+          { id: "1" },
+          testBuilders.strong("test para<b>graph"),
+        ),
+        " with content",
+      ),
+    ) as TaggedNode;
+
+    const editorState = EditorState.create({ doc });
+
+    // Add emphasis mark that partially overlaps from left: "a test para"
+    const originalTransaction = editorState.tr;
+    originalTransaction.addMark(
+      doc.tag["a"]!,
+      doc.tag["b"]!,
+      testBuilders.schema.marks.em.create(),
+    );
+    const step = originalTransaction.steps[0];
+    assert(step instanceof AddMarkStep, "Could not create AddMarkStep");
+
+    const trackedTransaction = editorState.tr;
+    trackAddMarkStep(trackedTransaction, editorState, doc, step, [], "2");
+
+    const finalState = editorState.apply(trackedTransaction);
+
+    // Expected: the overlapping part inherits ID "1", only "a " gets new ID "2"
+    const expected = testBuilders.doc(
+      testBuilders.paragraph(
+        "This is ",
+        testBuilders.deletion({ id: "2" }, "a "),
+        testBuilders.insertion({ id: "2" }, testBuilders.em("a ")),
+        testBuilders.deletion({ id: "1" }, "test paragraph"),
+        testBuilders.insertion(
+          { id: "1" },
+          testBuilders.strong(testBuilders.em("test para")),
+        ),
+        testBuilders.insertion({ id: "1" }, testBuilders.strong("graph")),
+        " with content",
+      ),
+    );
+
+    assert(
+      eq(finalState.doc, expected),
+      `Expected ${finalState.doc} to match ${expected}`,
+    );
+  });
+
+  it("should handle right-side partial overlap of mark on existing suggestion", () => {
+    // Existing suggestion spans "test paragraph"
+    const doc = testBuilders.doc(
+      testBuilders.paragraph(
+        "This is a ",
+        testBuilders.deletion({ id: "1" }, "test paragraph"),
+        testBuilders.insertion(
+          { id: "1" },
+          testBuilders.strong("test para<a>graph"),
+        ),
+        "<b> with content",
+      ),
+    ) as TaggedNode;
+
+    const editorState = EditorState.create({ doc });
+
+    // Add emphasis mark that partially overlaps from right: "graph with"
+    const originalTransaction = editorState.tr;
+    originalTransaction.addMark(
+      doc.tag["a"]!,
+      doc.tag["b"]!,
+      testBuilders.schema.marks.em.create(),
+    );
+    const step = originalTransaction.steps[0];
+    assert(step instanceof AddMarkStep, "Could not create AddMarkStep");
+
+    const trackedTransaction = editorState.tr;
+    trackAddMarkStep(trackedTransaction, editorState, doc, step, [], "2");
+
+    const finalState = editorState.apply(trackedTransaction);
+
+    // Expected: the overlapping part inherits ID "1", only " with" gets new ID "2"
+    const expected = testBuilders.doc(
+      testBuilders.paragraph(
+        "This is a ",
+        testBuilders.deletion({ id: "1" }, "test paragraph"),
+        testBuilders.insertion({ id: "1" }, testBuilders.strong("test para")),
+        testBuilders.insertion(
+          { id: "1" },
+          testBuilders.strong(testBuilders.em("graph")),
+        ),
+        testBuilders.deletion({ id: "2" }, " with"),
+        testBuilders.insertion({ id: "2" }, testBuilders.em(" with")),
+        " content",
+      ),
+    );
+
+    assert(
+      eq(finalState.doc, expected),
+      `Expected ${finalState.doc} to match ${expected}`,
+    );
+  });
+
+  it("should handle existing suggestion completely inside new mark", () => {
+    // Small existing suggestion "test"
+    const doc = testBuilders.doc(
+      testBuilders.paragraph(
+        "This is <a>a ",
+        testBuilders.deletion({ id: "1" }, "test"),
+        testBuilders.insertion({ id: "1" }, testBuilders.strong("test")),
+        " paragraph<b> with content",
+      ),
+    ) as TaggedNode;
+
+    const editorState = EditorState.create({ doc });
+
+    // Add emphasis mark that encompasses the suggestion: "a test paragraph"
+    const originalTransaction = editorState.tr;
+    originalTransaction.addMark(
+      doc.tag["a"]!,
+      doc.tag["b"]!,
+      testBuilders.schema.marks.em.create(),
+    );
+    const step = originalTransaction.steps[0];
+    assert(step instanceof AddMarkStep, "Could not create AddMarkStep");
+
+    const trackedTransaction = editorState.tr;
+    trackAddMarkStep(trackedTransaction, editorState, doc, step, [], "2");
+
+    const finalState = editorState.apply(trackedTransaction);
+
+    // Expected: existing suggestion keeps ID "1", new parts get ID "2"
+    const expected = testBuilders.doc(
+      testBuilders.paragraph(
+        "This is ",
+        testBuilders.deletion({ id: "2" }, "a "),
+        testBuilders.insertion({ id: "2" }, testBuilders.em("a ")),
+        testBuilders.deletion({ id: "1" }, "test"),
+        testBuilders.insertion(
+          { id: "1" },
+          testBuilders.strong(testBuilders.em("test")),
+        ),
+        testBuilders.deletion({ id: "2" }, " paragraph"),
+        testBuilders.insertion({ id: "2" }, testBuilders.em(" paragraph")),
+        " with content",
+      ),
+    );
+
+    assert(
+      eq(finalState.doc, expected),
+      `Expected ${finalState.doc} to match ${expected}`,
+    );
+  });
+
+  it("should handle mark application across block boundaries", () => {
+    // Existing suggestion in first paragraph
+    const doc = testBuilders.doc(
+      testBuilders.paragraph(
+        "First paragraph <a>with ",
+        testBuilders.deletion({ id: "1" }, "some text"),
+        testBuilders.insertion({ id: "1" }, testBuilders.strong("some text")),
+      ),
+      testBuilders.paragraph("<b>Second paragraph with more text"),
+    ) as TaggedNode;
+
+    const editorState = EditorState.create({ doc });
+
+    // Add emphasis mark across both paragraphs
+    const originalTransaction = editorState.tr;
+    originalTransaction.addMark(
+      doc.tag["a"]!,
+      doc.tag["b"]!,
+      testBuilders.schema.marks.em.create(),
+    );
+    const step = originalTransaction.steps[0];
+    assert(step instanceof AddMarkStep, "Could not create AddMarkStep");
+
+    const trackedTransaction = editorState.tr;
+    trackAddMarkStep(trackedTransaction, editorState, doc, step, [], "2");
+
+    const finalState = editorState.apply(trackedTransaction);
+
+    // Expected: overlap in first paragraph inherits ID "1", new parts get ID "2"
+    const expected = testBuilders.doc(
+      testBuilders.paragraph(
+        "First paragraph ",
+        testBuilders.deletion({ id: "2" }, "with "),
+        testBuilders.insertion({ id: "2" }, testBuilders.em("with ")),
+        testBuilders.deletion({ id: "1" }, "some text"),
+        testBuilders.insertion(
+          { id: "1" },
+          testBuilders.strong(testBuilders.em("some text")),
+        ),
+      ),
+      testBuilders.paragraph(
+        testBuilders.deletion({ id: "2" }, "Second paragraph"),
+        testBuilders.insertion(
+          { id: "2" },
+          testBuilders.em("Second paragraph"),
+        ),
+        " with more text",
+      ),
+    );
+
+    assert(
+      eq(finalState.doc, expected),
+      `Expected ${finalState.doc} to match ${expected}`,
+    );
+  });
 });
