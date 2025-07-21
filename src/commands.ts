@@ -182,11 +182,38 @@ function applyModificationsToTransform(
   });
 }
 
+function applyTextNodeSuggestions(node: Node) {
+  if (!node.isText || !node.text) {
+    return null;
+  }
+  const { deletion, insertion } = getSuggestionMarks(node.type.schema);
+
+  if (deletion.isInSet(node.marks)) {
+    return null;
+  }
+
+  // Remove insertion marks from the text node
+  const newMarks = node.marks.filter((mark) => mark.type !== insertion);
+
+  // If it's a zero-width space with insertion mark, remove it
+  if (node.text === "\u200B" && insertion.isInSet(node.marks)) {
+    return null;
+  }
+
+  // Return a new text node with the filtered marks
+  return node.type.schema.text(node.text, newMarks);
+}
+
 function applySuggestionsToNode(node: Node) {
   const { deletion, insertion } = getSuggestionMarks(node.type.schema);
 
   if (deletion.isInSet(node.marks)) {
     return null;
+  }
+
+  // Handle inline nodes (text nodes) without creating a Transform
+  if (node.isText) {
+    return applyTextNodeSuggestions(node);
   }
 
   const transform = new Transform(node);
