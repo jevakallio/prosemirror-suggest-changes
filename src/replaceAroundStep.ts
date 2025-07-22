@@ -9,6 +9,7 @@ import {
 
 import { applySuggestionsToSlice } from "./commands.js";
 import { suggestReplaceStep } from "./replaceStep.js";
+import { type SuggestionId } from "./generateId.js";
 
 /**
  * Transform a replace around step into its equivalent tracked steps.
@@ -23,8 +24,8 @@ export function suggestReplaceAroundStep(
   doc: Node,
   step: ReplaceAroundStep,
   prevSteps: Step[],
-  suggestionId: string,
-): boolean {
+  suggestionId: SuggestionId,
+) {
   const applied = step.apply(doc).doc;
   if (!applied) return false;
   const from = step.getMap().map(step.from, -1);

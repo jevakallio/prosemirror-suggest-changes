@@ -15,6 +15,7 @@ import { type EditorView } from "prosemirror-view";
 
 import { findSuggestionMarkEnd } from "./findSuggestionMarkEnd.js";
 import { suggestChangesKey } from "./plugin.js";
+import { type SuggestionId } from "./generateId.js";
 
 /**
  * Given a node and a transform, add a set of steps to the
@@ -29,7 +30,7 @@ function applySuggestionsToTransform(
   tr: Transform,
   markTypeToApply: MarkType,
   markTypeToRevert: MarkType,
-  suggestionId?: string,
+  suggestionId?: SuggestionId,
 ) {
   const toApplyIsInSet =
     suggestionId === undefined
@@ -119,7 +120,7 @@ function applyModificationsToTransform(
   node: Node,
   tr: Transform,
   dir: number,
-  suggestionId?: string,
+  suggestionId?: SuggestionId,
 ) {
   const { modification } = node.type.schema.marks;
   if (!modification) {
@@ -227,7 +228,7 @@ export function applySuggestions(
  * The insertion mark and modification mark will be removed, and their
  * contents left in the doc.
  */
-export function applySuggestion(suggestionId: string): Command {
+export function applySuggestion(suggestionId: SuggestionId): Command {
   return (state, dispatch) => {
     const { deletion, insertion } = state.schema.marks;
     if (!deletion) {
@@ -294,7 +295,7 @@ export function revertSuggestions(
  * The deletion mark will be removed, and their contents left in the doc.
  * Modifications tracked in modification marks will be reverted.
  */
-export function revertSuggestion(suggestionId: string): Command {
+export function revertSuggestion(suggestionId: SuggestionId): Command {
   return (state, dispatch) => {
     const { deletion, insertion } = state.schema.marks;
     if (!deletion) {
@@ -327,7 +328,7 @@ export function revertSuggestion(suggestionId: string): Command {
 /**
  * Command that updates the selection to cover an existing change.
  */
-export function selectSuggestion(suggestionId: string): Command {
+export function selectSuggestion(suggestionId: SuggestionId): Command {
   return (state, dispatch) => {
     const { deletion, insertion, modification } = state.schema.marks;
     if (!deletion) {

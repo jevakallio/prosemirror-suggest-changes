@@ -19,11 +19,8 @@ import { suggestRemoveNodeMarkStep } from "./removeNodeMarkStep.js";
 import { suggestReplaceAroundStep } from "./replaceAroundStep.js";
 import { suggestReplaceStep } from "./replaceStep.js";
 import { type EditorView } from "prosemirror-view";
-import {
-  isSuggestChangesEnabled,
-  getSuggestChangesGenerateId,
-  suggestChangesKey,
-} from "./plugin.js";
+import { isSuggestChangesEnabled, suggestChangesKey } from "./plugin.js";
+import { generateNextNumberId, type SuggestionId } from "./generateId.js";
 
 type StepHandler<S extends Step> = (
   trackedTransaction: Transaction,
@@ -31,7 +28,7 @@ type StepHandler<S extends Step> = (
   doc: Node,
   step: S,
   prevSteps: Step[],
-  suggestionId: string,
+  suggestionId: SuggestionId,
 ) => boolean;
 
 function getStepHandler<S extends Step>(step: S): StepHandler<S> {
@@ -101,6 +98,7 @@ function getStepHandler<S extends Step>(step: S): StepHandler<S> {
 export function transformToSuggestionTransaction(
   originalTransaction: Transaction,
   state: EditorState,
+  generateId?: () => SuggestionId,
 ) {
   const { deletion, insertion, modification } = state.schema.marks;
   if (!deletion) {
@@ -118,10 +116,9 @@ export function transformToSuggestionTransaction(
       `Failed to transform to suggestion: schema does not contain modification mark. Did you forget to add it?`,
     );
   }
-
-  // Get the generateId function from the plugin state
-  const generateId = getSuggestChangesGenerateId(state);
-
+  let suggestionId = generateId
+    ? generateId()
+    : generateNextNumberId(state.schema, originalTransaction.docs[0]);
   // Create a new transaction from scratch. The original transaction
   // is going to be dropped in favor of this one.
   const trackedTransaction = state.tr;
@@ -134,18 +131,25 @@ export function transformToSuggestionTransaction(
     const doc = originalTransaction.docs[i]!;
 
     const stepTracker = getStepHandler(step);
-
-    // Generate a new unique ID for this step
-    const suggestionId = generateId();
-
-    stepTracker(
-      trackedTransaction,
-      state,
-      doc,
-      step,
-      originalTransaction.steps.slice(0, i),
-      suggestionId,
-    );
+    if (
+      stepTracker(
+        trackedTransaction,
+        state,
+        doc,
+        step,
+        originalTransaction.steps.slice(0, i),
+        suggestionId,
+      ) &&
+      i < originalTransaction.steps.length - 1
+    ) {
+      // If the suggestionId was used by one of the step handlers,
+      // increment it so that it's not reused.
+      if (generateId && typeof suggestionId !== "number") {
+        suggestionId = generateId();
+      } else if (typeof suggestionId === "number") {
+        suggestionId = suggestionId + 1;
+      }
+    }
     continue;
   }
 
@@ -194,6 +198,7 @@ export function transformToSuggestionTransaction(
  */
 export function withSuggestChanges(
   dispatchTransaction?: EditorView["dispatch"],
+  generateId?: () => SuggestionId,
 ): EditorView["dispatch"] {
   const dispatch =
     dispatchTransaction ??
@@ -207,7 +212,7 @@ export function withSuggestChanges(
       !tr.getMeta("history$") &&
       !tr.getMeta("collab$") &&
       !("skip" in (tr.getMeta(suggestChangesKey) ?? {}))
-        ? transformToSuggestionTransaction(tr, this.state)
+        ? transformToSuggestionTransaction(tr, this.state, generateId)
         : tr;
     dispatch.call(this, transaction);
   };
