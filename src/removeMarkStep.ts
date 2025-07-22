@@ -9,6 +9,7 @@ import {
 
 import { applySuggestionsToRange } from "./commands.js";
 import { suggestReplaceStep } from "./replaceStep.js";
+import { type SuggestionId } from "./generateId.js";
 
 /**
  * Transform a remove mark step into its equivalent tracked steps.
@@ -23,8 +24,8 @@ export function suggestRemoveMarkStep(
   doc: Node,
   step: RemoveMarkStep,
   prevSteps: Step[],
-  suggestionId: string,
-): boolean {
+  suggestionId: SuggestionId,
+) {
   const applied = step.apply(doc).doc;
   if (!applied) return false;
 

@@ -9,6 +9,7 @@ import { type ReplaceStep, type Step } from "prosemirror-transform";
 import { findSuggestionMarkEnd } from "./findSuggestionMarkEnd.js";
 import { rebasePos } from "./rebasePos.js";
 import { getSuggestionMarks } from "./utils.js";
+import { type SuggestionId } from "./generateId.js";
 
 /**
  * Transform a replace step into its equivalent tracked steps.
@@ -46,7 +47,7 @@ export function suggestReplaceStep(
   doc: Node,
   step: ReplaceStep,
   prevSteps: Step[],
-  suggestionId: string,
+  suggestionId: SuggestionId,
 ) {
   const { deletion, insertion } = getSuggestionMarks(state.schema);
 
@@ -65,8 +66,8 @@ export function suggestReplaceStep(
     ) ?? null;
 
   const markId =
-    (markBefore?.attrs["id"] as string | undefined) ??
-    (markAfter?.attrs["id"] as string | undefined) ??
+    (markBefore?.attrs["id"] as SuggestionId | undefined) ??
+    (markAfter?.attrs["id"] as SuggestionId | undefined) ??
     suggestionId;
 
   const insertedRanges: { from: number; to: number }[] = [];

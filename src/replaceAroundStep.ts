@@ -17,6 +17,7 @@ import { suggestRemoveNodeMarkStep } from "./removeNodeMarkStep.js";
 import { suggestReplaceStep } from "./replaceStep.js";
 import { getSuggestionMarks } from "./utils.js";
 import { applySuggestionsToRange } from "./commands.js";
+import { type SuggestionId } from "./generateId.js";
 
 /**
  * This detects and handles changes from `setNodeMarkup` so that these are tracked as a modification
@@ -29,7 +30,7 @@ function suggestSetNodeMarkup(
   doc: Node,
   step: ReplaceAroundStep,
   prevSteps: Step[],
-  suggestionId: string,
+  suggestionId: SuggestionId,
 ) {
   if (
     step.insert === 1 &&
@@ -164,7 +165,7 @@ export function suggestReplaceAroundStep(
   doc: Node,
   step: ReplaceAroundStep,
   prevSteps: Step[],
-  suggestionId: string,
+  suggestionId: SuggestionId,
 ) {
   const handled = suggestSetNodeMarkup(
     trackedTransaction,

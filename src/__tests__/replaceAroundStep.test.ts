@@ -114,8 +114,6 @@ describe("ReplaceAroundStep", () => {
           {
             id: 1,
             type: "mark",
-            // we know this mark exists
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             previousValue: doc.children[0]!.marks[0]!.toJSON(),
             newValue: null,
           },

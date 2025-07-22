@@ -20,9 +20,6 @@ export {
   suggestChanges,
   suggestChangesKey,
   isSuggestChangesEnabled,
-  getSuggestChangesGenerateId,
-  type SuggestChangesOptions,
-  type SuggestChangesPluginState,
 } from "./plugin.js";
 
 export {
