@@ -770,7 +770,7 @@ describe("ReplaceStep", () => {
     originalTransaction.step(step);
 
     const trackedTransaction = editorState.tr;
-    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], "1");
+    suggestReplaceStep(trackedTransaction, editorState, doc, step, [], 1);
 
     const trackedState = editorState.apply(trackedTransaction);
 
