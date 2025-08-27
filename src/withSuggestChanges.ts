@@ -225,7 +225,6 @@ export function withSuggestChanges(
       isSuggestChangesEnabled(this.state) &&
       !tr.getMeta("history$") &&
       !tr.getMeta("collab$") &&
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       !ySyncMeta.isUndoRedoOperation &&
       !ySyncMeta.isChangeOrigin &&
       !("skip" in (tr.getMeta(suggestChangesKey) ?? {}))
