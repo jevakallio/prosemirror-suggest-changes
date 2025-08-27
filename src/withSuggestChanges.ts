@@ -66,6 +66,7 @@ function getStepHandler<S extends Step>(step: S): StepHandler<S> {
     prevSteps: Step[],
   ) => {
     const reset = prevSteps
+      .slice()
       .reverse()
       .reduce<Step | null>(
         (acc, step) => acc?.map(step.getMap().invert()) ?? null,
