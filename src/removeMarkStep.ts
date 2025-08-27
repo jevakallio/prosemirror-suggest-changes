@@ -7,7 +7,7 @@ import {
   replaceStep,
 } from "prosemirror-transform";
 
-import { applySuggestionsToSlice } from "./commands.js";
+import { applySuggestionsToRange } from "./commands.js";
 import { suggestReplaceStep } from "./replaceStep.js";
 
 /**
@@ -27,13 +27,10 @@ export function suggestRemoveMarkStep(
 ) {
   const applied = step.apply(doc).doc;
   if (!applied) return false;
-  const slice = applied.slice(step.from, step.to);
-  const replace = replaceStep(
-    doc,
-    step.from,
-    step.to,
-    applySuggestionsToSlice(slice),
-  );
+
+  const slice = applySuggestionsToRange(applied, step.from, step.to);
+
+  const replace = replaceStep(doc, step.from, step.to, slice);
   if (!replace) return false;
 
   return suggestReplaceStep(
