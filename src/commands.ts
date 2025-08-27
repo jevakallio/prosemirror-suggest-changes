@@ -1,10 +1,4 @@
-import {
-  Fragment,
-  type Mark,
-  type MarkType,
-  type Node,
-  Slice,
-} from "prosemirror-model";
+import { type Mark, type MarkType, type Node } from "prosemirror-model";
 import {
   type Command,
   type EditorState,
@@ -31,6 +25,8 @@ function applySuggestionsToTransform(
   markTypeToApply: MarkType,
   markTypeToRevert: MarkType,
   suggestionId?: number,
+  from?: number,
+  to?: number,
 ) {
   const toApplyIsInSet =
     suggestionId === undefined
@@ -55,6 +51,12 @@ function applySuggestionsToTransform(
   }
 
   node.descendants((child, pos) => {
+    if (from !== undefined && pos < from) {
+      return true;
+    }
+    if (to !== undefined && pos > to) {
+      return false;
+    }
     const isToRevert = toRevertIsInSet(child.marks);
     const isToApply = toApplyIsInSet(child.marks);
     if (!isToRevert && !isToApply) {
@@ -140,21 +142,34 @@ function revertModifications(node: Node, pos: number, tr: Transform) {
   }
 }
 
+function modificationIsInSet(
+  modification: MarkType,
+  id: number | undefined,
+  marks: readonly Mark[],
+) {
+  const mark = modification.isInSet(marks);
+  if (id === undefined) return mark;
+
+  if (mark?.attrs["id"] === id) return mark;
+
+  return undefined;
+}
+
 function applyModificationsToTransform(
   node: Node,
   tr: Transform,
   dir: number,
   suggestionId?: number,
+  from?: number,
+  to?: number,
 ) {
   const { modification } = getSuggestionMarks(node.type.schema);
 
-  const modificationIsInSet =
-    suggestionId === undefined
-      ? (marks: readonly Mark[]) => modification.isInSet(marks)
-      : (marks: readonly Mark[]) =>
-          modification.create({ id: suggestionId }).isInSet(marks);
-
-  const isModification = modificationIsInSet(node.marks);
+  const isModification = modificationIsInSet(
+    modification,
+    suggestionId,
+    node.marks,
+  );
 
   if (isModification) {
     let prevLength: number;
@@ -169,7 +184,17 @@ function applyModificationsToTransform(
   }
 
   node.descendants((child, pos) => {
-    const isModification = modificationIsInSet(child.marks);
+    if (from !== undefined && pos < from) {
+      return true;
+    }
+    if (to !== undefined && pos > to) {
+      return false;
+    }
+    const isModification = modificationIsInSet(
+      modification,
+      suggestionId,
+      child.marks,
+    );
     if (!isModification) {
       return true;
     }
@@ -188,12 +213,8 @@ function applyModificationsToTransform(
   });
 }
 
-function applySuggestionsToNode(node: Node) {
+export function applySuggestionsToNode(node: Node) {
   const { deletion, insertion } = getSuggestionMarks(node.type.schema);
-
-  if (deletion.isInSet(node.marks)) {
-    return null;
-  }
 
   const transform = new Transform(node);
   applySuggestionsToTransform(node, transform, insertion, deletion);
@@ -201,13 +222,35 @@ function applySuggestionsToNode(node: Node) {
   return transform.doc;
 }
 
-export function applySuggestionsToSlice(slice: Slice) {
-  const nodes: Node[] = [];
-  slice.content.forEach((node) => {
-    const applied = applySuggestionsToNode(node);
-    if (applied) nodes.push(applied);
-  });
-  return new Slice(Fragment.from(nodes), slice.openStart, slice.openEnd);
+export function applySuggestionsToRange(doc: Node, from: number, to: number) {
+  // blockRange can only return null if a predicate is provided
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const nodeRange = doc.resolve(from).blockRange(doc.resolve(to))!;
+
+  const { deletion, insertion } = getSuggestionMarks(doc.type.schema);
+
+  const transform = new Transform(doc);
+  applySuggestionsToTransform(
+    doc,
+    transform,
+    insertion,
+    deletion,
+    undefined,
+    nodeRange.start,
+    nodeRange.end,
+  );
+  applyModificationsToTransform(
+    doc,
+    transform,
+    1,
+    nodeRange.start,
+    nodeRange.end,
+  );
+
+  return transform.doc.slice(
+    transform.mapping.map(from),
+    transform.mapping.map(to),
+  );
 }
 
 /**

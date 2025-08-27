@@ -12,11 +12,11 @@ import {
 
 import { trackAddNodeMarkStep } from "./addNodeMarkStep.js";
 import { trackAttrStep } from "./attrStep.js";
-import { applySuggestionsToSlice } from "./commands.js";
 import { rebasePos } from "./rebasePos.js";
 import { suggestRemoveNodeMarkStep } from "./removeNodeMarkStep.js";
 import { suggestReplaceStep } from "./replaceStep.js";
 import { getSuggestionMarks } from "./utils.js";
+import { applySuggestionsToRange } from "./commands.js";
 
 /**
  * This detects and handles changes from `setNodeMarkup` so that these are tracked as a modification
@@ -189,7 +189,7 @@ export function suggestReplaceAroundStep(
     doc,
     step.getMap().invert().map(blockRange.start),
     step.getMap().invert().map(blockRange.end),
-    applySuggestionsToSlice(applied.slice(blockRange.start, blockRange.end)),
+    applySuggestionsToRange(applied, blockRange.start, blockRange.end),
   );
   if (!replace) return false;
   return suggestReplaceStep(
