@@ -1,4 +1,4 @@
-import { type Node } from "prosemirror-model";
+import { type Schema, type Node } from "prosemirror-model";
 import { type EditorState, type Transaction } from "prosemirror-state";
 import {
   AddMarkStep,
@@ -97,12 +97,12 @@ function getStepHandler<S extends Step>(step: S): StepHandler<S> {
 export function transformToSuggestionTransaction(
   originalTransaction: Transaction,
   state: EditorState,
-  generateId?: () => SuggestionId,
+  generateId?: (schema: Schema, doc?: Node) => SuggestionId,
 ) {
   getSuggestionMarks(state.schema);
 
   let suggestionId = generateId
-    ? generateId()
+    ? generateId(state.schema, originalTransaction.docs[0])
     : generateNextNumberId(state.schema, originalTransaction.docs[0]);
   // Create a new transaction from scratch. The original transaction
   // is going to be dropped in favor of this one.
@@ -129,8 +129,8 @@ export function transformToSuggestionTransaction(
     ) {
       // If the suggestionId was used by one of the step handlers,
       // increment it so that it's not reused.
-      if (generateId && typeof suggestionId !== "number") {
-        suggestionId = generateId();
+      if (generateId) {
+        suggestionId = generateId(state.schema, trackedTransaction.doc);
       } else if (typeof suggestionId === "number") {
         suggestionId = suggestionId + 1;
       }
@@ -183,7 +183,7 @@ export function transformToSuggestionTransaction(
  */
 export function withSuggestChanges(
   dispatchTransaction?: EditorView["dispatch"],
-  generateId?: () => SuggestionId,
+  generateId?: (schema: Schema, doc?: Node) => SuggestionId,
 ): EditorView["dispatch"] {
   const dispatch =
     dispatchTransaction ??

@@ -1,4 +1,5 @@
 import { type Node, type Schema } from "prosemirror-model";
+import { getSuggestionMarks } from "./utils.js";
 
 export type SuggestionId = string | number;
 
@@ -13,22 +14,7 @@ export function parseSuggestionId(id: string): SuggestionId {
 }
 
 export function generateNextNumberId(schema: Schema, doc?: Node) {
-  const { deletion, insertion, modification } = schema.marks;
-  if (!deletion) {
-    throw new Error(
-      `Failed to transform to suggestion: schema does not contain deletion mark. Did you forget to add it?`,
-    );
-  }
-  if (!insertion) {
-    throw new Error(
-      `Failed to transform to suggestion: schema does not contain insertion mark. Did you forget to add it?`,
-    );
-  }
-  if (!modification) {
-    throw new Error(
-      `Failed to transform to suggestion: schema does not contain modification mark. Did you forget to add it?`,
-    );
-  }
+  const { deletion, insertion, modification } = getSuggestionMarks(schema);
   // Find the highest change id in the document so far,
   // and use that as the starting point for new changes
   let suggestionId = 0;

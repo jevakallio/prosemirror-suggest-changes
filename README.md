@@ -384,5 +384,10 @@ document.
 ```ts
 function withSuggestChanges(
   dispatchTransaction?: EditorView["dispatch"],
+  generateId?: (schema: Schema, doc?: Node) => SuggestionId,
 ): EditorView["dispatch"];
 ```
+
+`generateId` can be used to customize the unique ids assigned to suggestion
+marks. If undefined, the default implementation (an auto-incrementing integer)
+will be used.
