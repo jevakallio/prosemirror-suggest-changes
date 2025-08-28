@@ -1,16 +1,17 @@
 import { type MarkSpec } from "prosemirror-model";
+import { type SuggestionId, suggestionIdValidate } from "./generateId.js";
 
 export const deletion: MarkSpec = {
   inclusive: false,
   excludes: "insertion modification deletion",
   attrs: {
-    id: { validate: "number" },
+    id: { validate: suggestionIdValidate },
   },
   toDOM(mark, inline) {
     return [
       "del",
       {
-        "data-id": String(mark.attrs["id"]),
+        "data-id": JSON.stringify(mark.attrs["id"]),
         "data-inline": String(inline),
         ...(!inline && { style: "display: block" }),
       },
@@ -23,7 +24,7 @@ export const deletion: MarkSpec = {
       getAttrs(node) {
         if (!node.dataset["id"]) return false;
         return {
-          id: parseInt(node.dataset["id"], 10),
+          id: JSON.parse(node.dataset["id"]) as SuggestionId,
         };
       },
     },
@@ -34,13 +35,13 @@ export const insertion: MarkSpec = {
   inclusive: false,
   excludes: "deletion modification insertion",
   attrs: {
-    id: { validate: "number" },
+    id: { validate: suggestionIdValidate },
   },
   toDOM(mark, inline) {
     return [
       "ins",
       {
-        "data-id": String(mark.attrs["id"]),
+        "data-id": JSON.stringify(mark.attrs["id"]),
         "data-inline": String(inline),
         ...(!inline && { style: "display: block" }),
       },
@@ -53,7 +54,7 @@ export const insertion: MarkSpec = {
       getAttrs(node) {
         if (!node.dataset["id"]) return false;
         return {
-          id: parseInt(node.dataset["id"], 10),
+          id: JSON.parse(node.dataset["id"]) as SuggestionId,
         };
       },
     },
@@ -64,7 +65,7 @@ export const modification: MarkSpec = {
   inclusive: false,
   excludes: "deletion insertion",
   attrs: {
-    id: { validate: "number" },
+    id: { validate: suggestionIdValidate },
     type: { validate: "string" },
     attrName: { default: null, validate: "string|null" },
     previousValue: { default: null },
@@ -75,7 +76,7 @@ export const modification: MarkSpec = {
       inline ? "span" : "div",
       {
         "data-type": "modification",
-        "data-id": String(mark.attrs["id"]),
+        "data-id": JSON.stringify(mark.attrs["id"]),
         "data-mod-type": mark.attrs["type"] as string,
         "data-mod-prev-val": JSON.stringify(mark.attrs["previousValue"]),
         // TODO: Try to serialize marks with toJSON?
@@ -90,7 +91,7 @@ export const modification: MarkSpec = {
       getAttrs(node) {
         if (!node.dataset["id"]) return false;
         return {
-          id: parseInt(node.dataset["id"], 10),
+          id: JSON.parse(node.dataset["id"]) as SuggestionId,
           type: node.dataset["modType"],
           previousValue: node.dataset["modPrevVal"],
           newValue: node.dataset["modNewVal"],
@@ -102,7 +103,7 @@ export const modification: MarkSpec = {
       getAttrs(node) {
         if (!node.dataset["id"]) return false;
         return {
-          id: parseInt(node.dataset["id"], 10),
+          id: JSON.parse(node.dataset["id"]) as SuggestionId,
           type: node.dataset["modType"],
           previousValue: node.dataset["modPrevVal"],
         };

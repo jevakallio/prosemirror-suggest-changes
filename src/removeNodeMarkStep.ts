@@ -4,6 +4,7 @@ import { type RemoveNodeMarkStep, type Step } from "prosemirror-transform";
 
 import { rebasePos } from "./rebasePos.js";
 import { getSuggestionMarks } from "./utils.js";
+import { type SuggestionId } from "./generateId.js";
 
 /**
  * Transform a remove node mark step into its equivalent tracked steps.
@@ -17,7 +18,7 @@ export function suggestRemoveNodeMarkStep(
   _doc: Node,
   step: RemoveNodeMarkStep,
   prevSteps: Step[],
-  suggestionId: number,
+  suggestionId: SuggestionId,
 ) {
   const { modification } = getSuggestionMarks(state.schema);
 
