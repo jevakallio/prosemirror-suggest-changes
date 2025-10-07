@@ -4,7 +4,7 @@ import {
   TextSelection,
   type Transaction,
 } from "prosemirror-state";
-import { type ReplaceStep, type Step } from "prosemirror-transform";
+import { type ReplaceStep, type Step, canJoin } from "prosemirror-transform";
 
 import { findSuggestionMarkEnd } from "./findSuggestionMarkEnd.js";
 import { rebasePos } from "./rebasePos.js";
@@ -70,7 +70,6 @@ export function suggestReplaceStep(
     (markAfter?.attrs["id"] as SuggestionId | undefined) ??
     suggestionId;
 
-  const insertedRanges: { from: number; to: number }[] = [];
   // Rebase this step's boundaries onto the newest doc
   let stepFrom = rebasePos(step.from, prevSteps, trackedTransaction.steps);
   let stepTo = rebasePos(step.to, prevSteps, trackedTransaction.steps);
@@ -84,23 +83,180 @@ export function suggestReplaceStep(
   // Make a list of any existing insertions that fall within the
   // range that this step is trying to delete. These will be actually
   // deleted, rather than marked as deletions.
-  trackedTransaction.doc.nodesBetween(stepFrom, stepTo, (node, pos) => {
-    if (insertion.isInSet(node.marks)) {
-      insertedRanges.push({
-        from: Math.max(pos, stepFrom),
-        to: Math.min(pos + node.nodeSize, step.to),
-      });
-      return false;
+  // Skip this for pure insertions (where from === to), but do it for deletions and replacements
+  const isPureInsertion = step.from === step.to;
+  const insertedRanges: { from: number; to: number; id?: string | number }[] =
+    [];
+
+  if (!isPureInsertion) {
+    trackedTransaction.doc.nodesBetween(stepFrom, stepTo, (node, pos) => {
+      if (insertion.isInSet(node.marks)) {
+        const insertionMark = insertion.isInSet(node.marks);
+        const markId = insertionMark?.attrs["id"] as
+          | string
+          | number
+          | undefined;
+        const range: { from: number; to: number; id?: string | number } = {
+          from: Math.max(pos, stepFrom),
+          to: Math.min(pos + node.nodeSize, stepTo),
+        };
+        if (markId !== undefined) {
+          range.id = markId;
+        }
+        insertedRanges.push(range);
+        return false;
+      }
+      return true;
+    });
+  }
+
+  // Check for insertion-marked content adjacent to the deletion boundaries
+  // This handles the case where a paragraph split creates zero-width spaces
+  // at block boundaries, and backspacing should delete them
+  // Only check adjacent positions when deleting at block boundaries (stepFrom == stepTo or very small range)
+  const isBlockBoundaryDeletion = !isPureInsertion && stepTo - stepFrom <= 1;
+
+  if (isBlockBoundaryDeletion) {
+    const $from = trackedTransaction.doc.resolve(stepFrom);
+    const $to = trackedTransaction.doc.resolve(stepTo);
+
+    if (
+      stepFrom > 0 &&
+      $from.nodeBefore &&
+      insertion.isInSet($from.nodeBefore.marks)
+    ) {
+      const insertionMark = insertion.isInSet($from.nodeBefore.marks);
+      const markId = insertionMark?.attrs["id"] as string | number | undefined;
+      const rangeFrom = stepFrom - $from.nodeBefore.nodeSize;
+      if (rangeFrom >= 0) {
+        const range: { from: number; to: number; id?: string | number } = {
+          from: rangeFrom,
+          to: stepFrom,
+        };
+        if (markId !== undefined) {
+          range.id = markId;
+        }
+        insertedRanges.push(range);
+      }
     }
-    return true;
-  });
+
+    // For $to.nodeAfter, we need to check if it's a block node with insertion-marked content
+    // at the start, or if it's directly an insertion-marked text node
+    if (stepTo < trackedTransaction.doc.content.size && $to.nodeAfter) {
+      let nodeToCheck = $to.nodeAfter;
+      let posOffset = 0;
+
+      // If nodeAfter is a block node (like paragraph), check its first child
+      if (nodeToCheck.isBlock && nodeToCheck.firstChild) {
+        nodeToCheck = nodeToCheck.firstChild;
+        posOffset = 1; // Account for the opening tag
+      }
+
+      if (insertion.isInSet(nodeToCheck.marks)) {
+        const insertionMark = insertion.isInSet(nodeToCheck.marks);
+        const markId = insertionMark?.attrs["id"] as
+          | string
+          | number
+          | undefined;
+        const rangeFrom = stepTo + posOffset;
+        const rangeTo = stepTo + posOffset + nodeToCheck.nodeSize;
+        if (rangeTo <= trackedTransaction.doc.content.size) {
+          const range: { from: number; to: number; id?: string | number } = {
+            from: rangeFrom,
+            to: rangeTo,
+          };
+          if (markId !== undefined) {
+            range.id = markId;
+          }
+          insertedRanges.push(range);
+        }
+      }
+    }
+  }
+
+  // Identify block boundaries that should be joined when their
+  // insertion marks are removed. This handles the case where:
+  // 1. User presses Enter to create a paragraph split (suggestion)
+  // 2. User presses Backspace to remove the split
+  // The expected behavior is to remove both the marks AND the structure.
+  const blockJoinsToMake: { pos: number; id: string | number }[] = [];
+
+  for (const range of insertedRanges) {
+    const content = trackedTransaction.doc.textBetween(range.from, range.to);
+
+    // Check if this is a zero-width space at a block boundary
+    if (content === "\u200B" && range.id !== undefined) {
+      const $rangeEnd = trackedTransaction.doc.resolve(range.to);
+
+      // Check if zero-width space is at end of a block
+      if (!$rangeEnd.nodeAfter) {
+        // Position after the current block
+        const afterBlockPos = $rangeEnd.after($rangeEnd.depth);
+
+        // Check if we can resolve this position
+        if (afterBlockPos <= trackedTransaction.doc.content.size) {
+          const $afterBlock = trackedTransaction.doc.resolve(afterBlockPos);
+
+          // Check if next block starts with insertion-marked zwsp with same ID
+          let nextNode = $afterBlock.nodeAfter;
+
+          // If it's a block node, check its first child
+          if (nextNode?.isBlock && nextNode.firstChild) {
+            nextNode = nextNode.firstChild;
+          }
+
+          if (nextNode?.textContent.startsWith("\u200B")) {
+            const nextNodeMark = insertion.isInSet(nextNode.marks);
+            if (nextNodeMark?.attrs["id"] === range.id) {
+              blockJoinsToMake.push({ pos: afterBlockPos, id: range.id });
+            }
+          }
+        }
+      }
+    }
+  }
 
   // Delete the previously-inserted ranges for real
   // ranges are reverted, applying them in this order saves rebasing
   // since deletions won't affect earlier deletions
   insertedRanges.reverse();
+  const hadInsertedContent = insertedRanges.length > 0;
   for (const range of insertedRanges) {
-    trackedTransaction.delete(range.from, range.to);
+    // Validate range before deletion
+    if (
+      range.from >= 0 &&
+      range.to <= trackedTransaction.doc.content.size &&
+      range.from < range.to
+    ) {
+      trackedTransaction.delete(range.from, range.to);
+    }
+  }
+
+  // Join blocks after deletions
+  // Process from end to start to maintain position validity
+  blockJoinsToMake.reverse();
+  const didBlockJoin = blockJoinsToMake.length > 0;
+  for (const joinInfo of blockJoinsToMake) {
+    // Map the position through all the changes we've made
+    const mappedPos = trackedTransaction.mapping.map(joinInfo.pos);
+
+    // Only join if the position is still valid
+    if (mappedPos > 0 && mappedPos < trackedTransaction.doc.content.size) {
+      try {
+        if (canJoin(trackedTransaction.doc, mappedPos)) {
+          trackedTransaction.join(mappedPos);
+        }
+      } catch {
+        // Position may no longer be valid for joining, skip
+        continue;
+      }
+    }
+  }
+
+  // If we deleted insertion-marked content and joined blocks, we're done.
+  // Don't continue with normal deletion marking logic.
+  if (hadInsertedContent && didBlockJoin) {
+    return markId === suggestionId;
   }
 
   // Update the step boundaries, since we may have just changed
