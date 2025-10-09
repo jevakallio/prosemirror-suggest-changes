@@ -42,11 +42,15 @@ import { canJoin } from "prosemirror-transform";
  */
 export function handleBlockJoinOnZwspDeletion(
   trackedTransaction: Transaction,
-  insertedRanges: Array<{ from: number; to: number; id?: string | number }>,
-  insertion: MarkType
+  insertedRanges: { from: number; to: number; id?: string | number }[],
+  insertion: MarkType,
 ): boolean {
   const blockJoinsToMake: { pos: number; id: string | number }[] = [];
-  const additionalRangesToDelete: Array<{ from: number; to: number; id?: string | number }> = [];
+  const additionalRangesToDelete: {
+    from: number;
+    to: number;
+    id?: string | number;
+  }[] = [];
 
   // Phase 1: Detect ZWSP pairs at block boundaries
   // Check BOTH forward and backward directions
@@ -101,7 +105,7 @@ export function handleBlockJoinOnZwspDeletion(
               // After the previous block ends, this is the correct join position
               const joinPos = $beforeBlock.pos; // Position at the boundary
               const alreadyAdded = blockJoinsToMake.some(
-                (j) => j.pos === joinPos && j.id === range.id
+                (j) => j.pos === joinPos && j.id === range.id,
               );
               if (!alreadyAdded) {
                 blockJoinsToMake.push({ pos: joinPos, id: range.id });
@@ -114,7 +118,6 @@ export function handleBlockJoinOnZwspDeletion(
               const prevBlock = $beforeBlock.nodeBefore;
               if (prevBlock?.isBlock) {
                 // Find the ending position of the previous block's content
-                const prevBlockStart = $beforeBlock.pos - prevBlock.nodeSize;
                 const prevBlockEnd = $beforeBlock.pos - 1; // -1 for closing tag
 
                 // The ZWSP should be the last character before the closing tag
@@ -122,11 +125,13 @@ export function handleBlockJoinOnZwspDeletion(
                 const zwspStart = zwspEnd - 1;
 
                 // Only add if not already in ranges
-                const alreadyInRanges = insertedRanges.some(
-                  (r) => r.from === zwspStart && r.to === zwspEnd
-                ) || additionalRangesToDelete.some(
-                  (r) => r.from === zwspStart && r.to === zwspEnd
-                );
+                const alreadyInRanges =
+                  insertedRanges.some(
+                    (r) => r.from === zwspStart && r.to === zwspEnd,
+                  ) ||
+                  additionalRangesToDelete.some(
+                    (r) => r.from === zwspStart && r.to === zwspEnd,
+                  );
 
                 if (!alreadyInRanges) {
                   additionalRangesToDelete.push({

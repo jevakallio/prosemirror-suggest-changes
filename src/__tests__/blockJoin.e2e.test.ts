@@ -4,7 +4,7 @@ import { Schema } from "prosemirror-model";
 import { nodes, marks } from "prosemirror-schema-basic";
 import { addSuggestionMarks } from "../schema.js";
 import { describe, it, beforeEach, afterEach } from "vitest";
-// @ts-ignore - jsdom types not needed for tests
+// @ts-expect-error - jsdom types not needed for tests
 import { JSDOM } from "jsdom";
 import { withSuggestChanges } from "../withSuggestChanges.js";
 import { suggestChanges, suggestChangesKey } from "../plugin.js";
@@ -32,7 +32,9 @@ describe("Block Join E2E - Real ProseMirror Behavior", () => {
 
   beforeEach(() => {
     // Create a fresh DOM for each test
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
     dom = new JSDOM("<!DOCTYPE html><div id='editor'></div>");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-non-null-assertion
     container = dom.window.document.getElementById("editor")!;
   });
 
@@ -65,15 +67,17 @@ describe("Block Join E2E - Real ProseMirror Behavior", () => {
     });
 
     // Enable suggest changes mode
-    state = state.apply(
-      state.tr.setMeta(suggestChangesKey, { enabled: true })
-    );
+    state = state.apply(state.tr.setMeta(suggestChangesKey, { enabled: true }));
 
     const dispatch = withSuggestChanges(
       function (this: EditorView, tr) {
         // LOG THE TRANSACTION - This is the key!
         console.log("\n=== TRANSACTION ===");
-        console.log("Steps:", tr.steps.map((s) => s.toJSON()));
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        console.log(
+          "Steps:",
+          tr.steps.map((s) => s.toJSON()),
+        );
         console.log("Selection:", {
           from: tr.selection.from,
           to: tr.selection.to,
@@ -87,7 +91,7 @@ describe("Block Join E2E - Real ProseMirror Behavior", () => {
         console.log("Doc after:", newState.doc.toJSON());
         console.log("===================\n");
       },
-      () => 1 // Always use suggestion ID 1
+      () => 1 as string | number, // Always use suggestion ID 1
     );
 
     view = new EditorView(container, {
@@ -110,8 +114,8 @@ describe("Block Join E2E - Real ProseMirror Behavior", () => {
       const endPos = initialDoc.content.size - 1;
       editor.dispatch(
         editor.state.tr.setSelection(
-          TextSelection.near(initialDoc.resolve(endPos))
-        )
+          TextSelection.near(initialDoc.resolve(endPos)),
+        ),
       );
 
       console.log("\n⚡ Simulating ENTER key...");
@@ -133,7 +137,7 @@ describe("Block Join E2E - Real ProseMirror Behavior", () => {
       // TODO: Figure out actual transaction for Backspace
       const backspaceTr = editor.state.tr.delete(
         editor.state.selection.from - 1,
-        editor.state.selection.from
+        editor.state.selection.from,
       );
       editor.dispatch(backspaceTr);
 
@@ -159,8 +163,8 @@ describe("Block Join E2E - Real ProseMirror Behavior", () => {
       const endPos = initialDoc.content.size - 1;
       editor.dispatch(
         editor.state.tr.setSelection(
-          TextSelection.near(initialDoc.resolve(endPos))
-        )
+          TextSelection.near(initialDoc.resolve(endPos)),
+        ),
       );
 
       console.log("\n⚡ First ENTER...");
@@ -177,16 +181,16 @@ describe("Block Join E2E - Real ProseMirror Behavior", () => {
       editor.dispatch(
         editor.state.tr.delete(
           editor.state.selection.from - 1,
-          editor.state.selection.from
-        )
+          editor.state.selection.from,
+        ),
       );
 
       console.log("\n⬅️ Second BACKSPACE...");
       editor.dispatch(
         editor.state.tr.delete(
           editor.state.selection.from - 1,
-          editor.state.selection.from
-        )
+          editor.state.selection.from,
+        ),
       );
 
       const finalDoc = editor.state.doc;
@@ -204,14 +208,16 @@ describe("Block Join E2E - Real ProseMirror Behavior", () => {
       const editor = createEditor("test paragraph");
       const initialDoc = editor.state.doc;
 
-      console.log("\n📝 TEST: Paragraph Enter → Delete from first block (Case 1)");
+      console.log(
+        "\n📝 TEST: Paragraph Enter → Delete from first block (Case 1)",
+      );
 
       // Move to end
       const endPos = initialDoc.content.size - 1;
       editor.dispatch(
         editor.state.tr.setSelection(
-          TextSelection.near(initialDoc.resolve(endPos))
-        )
+          TextSelection.near(initialDoc.resolve(endPos)),
+        ),
       );
 
       console.log("\n⚡ ENTER...");
@@ -220,9 +226,7 @@ describe("Block Join E2E - Real ProseMirror Behavior", () => {
       // Move cursor to end of FIRST block (before the split)
       const firstBlockEnd = editor.state.doc.resolve(endPos);
       editor.dispatch(
-        editor.state.tr.setSelection(
-          TextSelection.near(firstBlockEnd)
-        )
+        editor.state.tr.setSelection(TextSelection.near(firstBlockEnd)),
       );
 
       console.log("\n➡️ DELETE from end of first block...");
@@ -235,8 +239,8 @@ describe("Block Join E2E - Real ProseMirror Behavior", () => {
       editor.dispatch(
         editor.state.tr.delete(
           editor.state.selection.from,
-          editor.state.selection.from + 1
-        )
+          editor.state.selection.from + 1,
+        ),
       );
 
       const finalDoc = editor.state.doc;
@@ -262,8 +266,8 @@ describe("Block Join E2E - Real ProseMirror Behavior", () => {
       const endPos = initialDoc.content.size - 1;
       editor.dispatch(
         editor.state.tr.setSelection(
-          TextSelection.near(initialDoc.resolve(endPos))
-        )
+          TextSelection.near(initialDoc.resolve(endPos)),
+        ),
       );
 
       console.log("\n⚡ ENTER...");
@@ -283,8 +287,8 @@ describe("Block Join E2E - Real ProseMirror Behavior", () => {
 
       editor.dispatch(
         editor.state.tr.setSelection(
-          TextSelection.near(afterEnter.resolve(boundaryPos))
-        )
+          TextSelection.near(afterEnter.resolve(boundaryPos)),
+        ),
       );
 
       console.log("Cursor at boundary:", {
@@ -301,8 +305,8 @@ describe("Block Join E2E - Real ProseMirror Behavior", () => {
       editor.dispatch(
         editor.state.tr.delete(
           editor.state.selection.from,
-          editor.state.selection.from + 1
-        )
+          editor.state.selection.from + 1,
+        ),
       );
 
       const finalDoc = editor.state.doc;
