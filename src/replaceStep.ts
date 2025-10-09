@@ -4,12 +4,13 @@ import {
   TextSelection,
   type Transaction,
 } from "prosemirror-state";
-import { type ReplaceStep, type Step, canJoin } from "prosemirror-transform";
+import { type ReplaceStep, type Step } from "prosemirror-transform";
 
 import { findSuggestionMarkEnd } from "./findSuggestionMarkEnd.js";
 import { rebasePos } from "./rebasePos.js";
 import { getSuggestionMarks } from "./utils.js";
 import { type SuggestionId } from "./generateId.js";
+import { handleBlockJoinOnZwspDeletion } from "./features/blockJoinOnZwspDeletion.js";
 
 /**
  * Transform a replace step into its equivalent tracked steps.
@@ -174,88 +175,16 @@ export function suggestReplaceStep(
     }
   }
 
-  // Identify block boundaries that should be joined when their
-  // insertion marks are removed. This handles the case where:
-  // 1. User presses Enter to create a paragraph split (suggestion)
-  // 2. User presses Backspace to remove the split
-  // The expected behavior is to remove both the marks AND the structure.
-  const blockJoinsToMake: { pos: number; id: string | number }[] = [];
+  // Handle block joins when ZWSP pairs are deleted
+  // This handles the case where Enter creates a paragraph split (suggestion)
+  // and Backspace/Delete removes it
+  const didHandleBlockJoin = handleBlockJoinOnZwspDeletion(
+    trackedTransaction,
+    insertedRanges,
+    insertion
+  );
 
-  for (const range of insertedRanges) {
-    const content = trackedTransaction.doc.textBetween(range.from, range.to);
-
-    // Check if this is a zero-width space at a block boundary
-    if (content === "\u200B" && range.id !== undefined) {
-      const $rangeEnd = trackedTransaction.doc.resolve(range.to);
-
-      // Check if zero-width space is at end of a block
-      if (!$rangeEnd.nodeAfter) {
-        // Position after the current block
-        const afterBlockPos = $rangeEnd.after($rangeEnd.depth);
-
-        // Check if we can resolve this position
-        if (afterBlockPos <= trackedTransaction.doc.content.size) {
-          const $afterBlock = trackedTransaction.doc.resolve(afterBlockPos);
-
-          // Check if next block starts with insertion-marked zwsp with same ID
-          let nextNode = $afterBlock.nodeAfter;
-
-          // If it's a block node, check its first child
-          if (nextNode?.isBlock && nextNode.firstChild) {
-            nextNode = nextNode.firstChild;
-          }
-
-          if (nextNode?.textContent.startsWith("\u200B")) {
-            const nextNodeMark = insertion.isInSet(nextNode.marks);
-            if (nextNodeMark?.attrs["id"] === range.id) {
-              blockJoinsToMake.push({ pos: afterBlockPos, id: range.id });
-            }
-          }
-        }
-      }
-    }
-  }
-
-  // Delete the previously-inserted ranges for real
-  // ranges are reverted, applying them in this order saves rebasing
-  // since deletions won't affect earlier deletions
-  insertedRanges.reverse();
-  const hadInsertedContent = insertedRanges.length > 0;
-  for (const range of insertedRanges) {
-    // Validate range before deletion
-    if (
-      range.from >= 0 &&
-      range.to <= trackedTransaction.doc.content.size &&
-      range.from < range.to
-    ) {
-      trackedTransaction.delete(range.from, range.to);
-    }
-  }
-
-  // Join blocks after deletions
-  // Process from end to start to maintain position validity
-  blockJoinsToMake.reverse();
-  const didBlockJoin = blockJoinsToMake.length > 0;
-  for (const joinInfo of blockJoinsToMake) {
-    // Map the position through all the changes we've made
-    const mappedPos = trackedTransaction.mapping.map(joinInfo.pos);
-
-    // Only join if the position is still valid
-    if (mappedPos > 0 && mappedPos < trackedTransaction.doc.content.size) {
-      try {
-        if (canJoin(trackedTransaction.doc, mappedPos)) {
-          trackedTransaction.join(mappedPos);
-        }
-      } catch {
-        // Position may no longer be valid for joining, skip
-        continue;
-      }
-    }
-  }
-
-  // If we deleted insertion-marked content and joined blocks, we're done.
-  // Don't continue with normal deletion marking logic.
-  if (hadInsertedContent && didBlockJoin) {
+  if (didHandleBlockJoin) {
     return markId === suggestionId;
   }
 
