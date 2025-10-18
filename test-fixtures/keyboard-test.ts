@@ -68,7 +68,7 @@ const dispatch = withSuggestChanges(
 
 // Create editor view
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-const editorEl = document.getElementById("editor")!
+const editorEl = document.getElementById("editor")!;
 const view = new EditorView(editorEl, {
   state,
   dispatchTransaction: dispatch,
@@ -196,7 +196,12 @@ window.pmEditor = {
     console.log("=== Editor State ===");
     console.log("Paragraphs:", view.state.doc.childCount);
     console.log("Content:", view.state.doc.textContent);
-    console.log("Cursor:", view.state.selection.from, "-", view.state.selection.to);
+    console.log(
+      "Cursor:",
+      view.state.selection.from,
+      "-",
+      view.state.selection.to,
+    );
     console.log("Doc JSON:", view.state.doc.toJSON());
     console.log("===================");
   },

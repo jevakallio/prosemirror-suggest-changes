@@ -64,9 +64,7 @@ export interface CreateTestEditorOptions {
  * pressBackspace(editor);
  * ```
  */
-export function createTestEditor(
-  options: CreateTestEditorOptions,
-): EditorView {
+export function createTestEditor(options: CreateTestEditorOptions): EditorView {
   const {
     content = "",
     container,
@@ -102,35 +100,32 @@ export function createTestEditor(
   }
 
   // Create dispatch function with optional logging
-  const dispatch = withSuggestChanges(
-    function (this: EditorView, tr) {
-      // Log the transaction if enabled
-      if (enableLogging) {
-        console.log("\n=== TRANSACTION ===");
-        console.log(
-          "Steps:",
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-          tr.steps.map((s) => s.toJSON()),
-        );
-        console.log("Selection:", {
-          from: tr.selection.from,
-          to: tr.selection.to,
-          empty: tr.selection.empty,
-        });
-        console.log("Doc before:", this.state.doc.toJSON());
+  const dispatch = withSuggestChanges(function (this: EditorView, tr) {
+    // Log the transaction if enabled
+    if (enableLogging) {
+      console.log("\n=== TRANSACTION ===");
+      console.log(
+        "Steps:",
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        tr.steps.map((s) => s.toJSON()),
+      );
+      console.log("Selection:", {
+        from: tr.selection.from,
+        to: tr.selection.to,
+        empty: tr.selection.empty,
+      });
+      console.log("Doc before:", this.state.doc.toJSON());
 
-        const newState = this.state.apply(tr);
-        this.updateState(newState);
+      const newState = this.state.apply(tr);
+      this.updateState(newState);
 
-        console.log("Doc after:", newState.doc.toJSON());
-        console.log("===================\n");
-      } else {
-        const newState = this.state.apply(tr);
-        this.updateState(newState);
-      }
-    },
-    generateId,
-  );
+      console.log("Doc after:", newState.doc.toJSON());
+      console.log("===================\n");
+    } else {
+      const newState = this.state.apply(tr);
+      this.updateState(newState);
+    }
+  }, generateId);
 
   // Create the editor view
   const view = new EditorView(container, {

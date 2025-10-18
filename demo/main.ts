@@ -173,18 +173,15 @@ const suggestChangesUiPlugin = new Plugin({
   },
 });
 
-const enterCommand = baseKeymap["Enter"]
+const enterCommand = baseKeymap["Enter"];
 
-if(!enterCommand){
-  throw new Error("Missing enter command")
+if (!enterCommand) {
+  throw new Error("Missing enter command");
 }
 const plugins = [
   keymap({
     ...baseKeymap,
-    Enter: chainCommands(
-      splitListItem(schema.nodes.list_item),
-      enterCommand,
-    ),
+    Enter: chainCommands(splitListItem(schema.nodes.list_item), enterCommand),
     "Shift-Enter": enterCommand,
     Tab: sinkListItem(schema.nodes.list_item),
     "Shift-Tab": liftListItem(schema.nodes.list_item),

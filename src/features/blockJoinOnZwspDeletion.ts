@@ -18,9 +18,6 @@ import { canJoin } from "prosemirror-transform";
  * 2. Deletes both ZWSP markers
  * 3. Joins the blocks back together
  *
- * Based on E2E test observations documented in:
- * thoughts/shared/research/2025-10-09-prosemirror-transaction-observations.md
- *
  * Key Findings from E2E Tests:
  * - Case 1 (Delete from first block): Cursor at end of first block, deletes ending ZWSP
  *   → Need FORWARD detection: check if next block starts with matching ZWSP
@@ -51,7 +48,6 @@ export function handleBlockJoinOnZwspDeletion(
     to: number;
     id?: string | number;
   }[] = [];
-
   // Phase 1: Detect ZWSP pairs at block boundaries
   // Check BOTH forward and backward directions
   for (const range of insertedRanges) {

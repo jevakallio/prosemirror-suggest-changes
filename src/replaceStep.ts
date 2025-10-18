@@ -114,8 +114,17 @@ export function suggestReplaceStep(
   // Check for insertion-marked content adjacent to the deletion boundaries
   // This handles the case where a paragraph split creates zero-width spaces
   // at block boundaries, and backspacing should delete them
-  // Only check adjacent positions when deleting at block boundaries (stepFrom == stepTo or very small range)
-  const isBlockBoundaryDeletion = !isPureInsertion && stepTo - stepFrom <= 1;
+  // Only check adjacent positions when deleting at block boundaries:
+  // - stepTo - stepFrom = 1: Single character deletion (may be ZWSP at boundary)
+  // - stepTo - stepFrom = 2: Structural block join (Delete after ArrowLeft) - but only if at block boundary
+  const $stepFrom = trackedTransaction.doc.resolve(stepFrom);
+  const $stepTo = trackedTransaction.doc.resolve(stepTo);
+  const crossesBlockBoundary = $stepFrom.parent !== $stepTo.parent;
+  const isSmallDeletion = stepTo - stepFrom <= 2;
+  const isBlockBoundaryDeletion =
+    !isPureInsertion &&
+    isSmallDeletion &&
+    (stepTo - stepFrom === 1 || crossesBlockBoundary);
 
   if (isBlockBoundaryDeletion) {
     const $from = trackedTransaction.doc.resolve(stepFrom);
@@ -181,7 +190,7 @@ export function suggestReplaceStep(
   const didHandleBlockJoin = handleBlockJoinOnZwspDeletion(
     trackedTransaction,
     insertedRanges,
-    insertion
+    insertion,
   );
 
   if (didHandleBlockJoin) {
@@ -192,6 +201,13 @@ export function suggestReplaceStep(
   // the document
   stepFrom = rebasePos(step.from, prevSteps, trackedTransaction.steps);
   stepTo = rebasePos(step.to, prevSteps, trackedTransaction.steps);
+
+  // Re-resolve nodeAfter since the document may have changed
+  const nodeAfterResolved = trackedTransaction.doc.resolve(stepTo).nodeAfter;
+  const markAfterResolved =
+    nodeAfterResolved?.marks.find(
+      (mark) => mark.type === deletion || mark.type === insertion,
+    ) ?? null;
 
   // If there's a deletion, we need to check for and handle
   // the case where it crosses a block boundary, so that we
@@ -306,16 +322,21 @@ export function suggestReplaceStep(
 
   // Detect when a new mark directly abuts an existing mark with
   // a different id and merge them
-  if (nodeAfter && markAfter && markAfter.attrs["id"] !== markId) {
+  // Use the re-resolved nodeAfter and markAfter since the document may have changed
+  if (
+    nodeAfterResolved &&
+    markAfterResolved &&
+    markAfterResolved.attrs["id"] !== markId
+  ) {
     const $nodeAfterStart = trackedTransaction.doc.resolve(stepTo);
-    const nodeAfterEnd = $nodeAfterStart.pos + nodeAfter.nodeSize;
-    trackedTransaction.removeMark(stepTo, nodeAfterEnd, markAfter.type);
+    const nodeAfterEnd = $nodeAfterStart.pos + nodeAfterResolved.nodeSize;
+    trackedTransaction.removeMark(stepTo, nodeAfterEnd, markAfterResolved.type);
     trackedTransaction.addMark(
       stepTo,
       nodeAfterEnd,
-      markAfter.type.create({ id: markId }),
+      markAfterResolved.type.create({ id: markId }),
     );
-    if (markAfter.type === deletion) {
+    if (markAfterResolved.type === deletion) {
       const insertionNode =
         trackedTransaction.doc.resolve(nodeAfterEnd).nodeAfter;
       if (insertionNode && insertion.isInSet(insertionNode.marks)) {
