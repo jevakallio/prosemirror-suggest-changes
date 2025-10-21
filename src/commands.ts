@@ -29,17 +29,19 @@ function applySuggestionsToTransform(
   from?: number,
   to?: number,
 ) {
-  const toApplyIsInSet =
-    suggestionId === undefined
-      ? (marks: readonly Mark[]) => markTypeToApply.isInSet(marks)
-      : (marks: readonly Mark[]) =>
-          markTypeToApply.create({ id: suggestionId }).isInSet(marks);
+  const toApplyIsInSet = (marks: readonly Mark[]) => {
+    const mark = markTypeToApply.isInSet(marks);
+    if (suggestionId === undefined) return mark;
+    if (mark?.attrs["id"] === suggestionId) return mark;
+    return undefined;
+  };
 
-  const toRevertIsInSet =
-    suggestionId === undefined
-      ? (marks: readonly Mark[]) => markTypeToRevert.isInSet(marks)
-      : (marks: readonly Mark[]) =>
-          markTypeToRevert.create({ id: suggestionId }).isInSet(marks);
+  const toRevertIsInSet = (marks: readonly Mark[]) => {
+    const mark = markTypeToRevert.isInSet(marks);
+    if (suggestionId === undefined) return mark;
+    if (mark?.attrs["id"] === suggestionId) return mark;
+    return undefined;
+  };
 
   const isToApply = toApplyIsInSet(node.marks);
 
