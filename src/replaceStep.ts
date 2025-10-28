@@ -98,13 +98,6 @@ export function suggestReplaceStep(
   stepFrom = rebasePos(step.from, prevSteps, trackedTransaction.steps);
   stepTo = rebasePos(step.to, prevSteps, trackedTransaction.steps);
 
-  // Re-resolve nodeAfter since the document may have changed
-  const nodeAfterResolved = trackedTransaction.doc.resolve(stepTo).nodeAfter;
-  const markAfterResolved =
-    nodeAfterResolved?.marks.find(
-      (mark) => mark.type === deletion || mark.type === insertion,
-    ) ?? null;
-
   // If there's a deletion, we need to check for and handle
   // the case where it crosses a block boundary, so that we
   // can leave zero-width spaces as markers if there's no other
@@ -218,21 +211,16 @@ export function suggestReplaceStep(
 
   // Detect when a new mark directly abuts an existing mark with
   // a different id and merge them
-  // Use the re-resolved nodeAfter and markAfter since the document may have changed
-  if (
-    nodeAfterResolved &&
-    markAfterResolved &&
-    markAfterResolved.attrs["id"] !== markId
-  ) {
+  if (nodeAfter && markAfter && markAfter.attrs["id"] !== markId) {
     const $nodeAfterStart = trackedTransaction.doc.resolve(stepTo);
-    const nodeAfterEnd = $nodeAfterStart.pos + nodeAfterResolved.nodeSize;
-    trackedTransaction.removeMark(stepTo, nodeAfterEnd, markAfterResolved.type);
+    const nodeAfterEnd = $nodeAfterStart.pos + nodeAfter.nodeSize;
+    trackedTransaction.removeMark(stepTo, nodeAfterEnd, markAfter.type);
     trackedTransaction.addMark(
       stepTo,
       nodeAfterEnd,
-      markAfterResolved.type.create({ id: markId }),
+      markAfter.type.create({ id: markId }),
     );
-    if (markAfterResolved.type === deletion) {
+    if (markAfter.type === deletion) {
       const insertionNode =
         trackedTransaction.doc.resolve(nodeAfterEnd).nodeAfter;
       if (insertionNode && insertion.isInSet(insertionNode.marks)) {
