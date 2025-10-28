@@ -10,6 +10,7 @@ import { findSuggestionMarkEnd } from "./findSuggestionMarkEnd.js";
 import { rebasePos } from "./rebasePos.js";
 import { getSuggestionMarks } from "./utils.js";
 import { type SuggestionId } from "./generateId.js";
+import { processInsertedRanges } from "./features/processInsertedRanges/index.js";
 
 /**
  * Transform a replace step into its equivalent tracked steps.
@@ -70,7 +71,6 @@ export function suggestReplaceStep(
     (markAfter?.attrs["id"] as SuggestionId | undefined) ??
     suggestionId;
 
-  const insertedRanges: { from: number; to: number }[] = [];
   // Rebase this step's boundaries onto the newest doc
   let stepFrom = rebasePos(step.from, prevSteps, trackedTransaction.steps);
   let stepTo = rebasePos(step.to, prevSteps, trackedTransaction.steps);
@@ -81,26 +81,16 @@ export function suggestReplaceStep(
     );
   }
 
-  // Make a list of any existing insertions that fall within the
-  // range that this step is trying to delete. These will be actually
-  // deleted, rather than marked as deletions.
-  trackedTransaction.doc.nodesBetween(stepFrom, stepTo, (node, pos) => {
-    if (insertion.isInSet(node.marks)) {
-      insertedRanges.push({
-        from: Math.max(pos, stepFrom),
-        to: Math.min(pos + node.nodeSize, step.to),
-      });
-      return false;
-    }
-    return true;
-  });
+  const didHandleBlockJoin = processInsertedRanges(
+    step,
+    trackedTransaction,
+    stepFrom,
+    stepTo,
+    insertion,
+  );
 
-  // Delete the previously-inserted ranges for real
-  // ranges are reverted, applying them in this order saves rebasing
-  // since deletions won't affect earlier deletions
-  insertedRanges.reverse();
-  for (const range of insertedRanges) {
-    trackedTransaction.delete(range.from, range.to);
+  if (didHandleBlockJoin) {
+    return markId === suggestionId;
   }
 
   // Update the step boundaries, since we may have just changed
