@@ -82,7 +82,6 @@ export function suggestReplaceStep(
   }
 
   const didHandleBlockJoin = processInsertedRanges(
-    step,
     trackedTransaction,
     stepFrom,
     stepTo,

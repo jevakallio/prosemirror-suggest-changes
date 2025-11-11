@@ -1,10 +1,8 @@
-import type { ReplaceStep } from "prosemirror-transform";
 import type { Transaction } from "prosemirror-state";
 import type { MarkType } from "prosemirror-model";
 import { handleBlockJoinOnZwspDeletion } from "./blockJoinOnZwspDeletion.js";
 
 export const processInsertedRanges = (
-  step: ReplaceStep,
   trackedTransaction: Transaction,
   stepFrom: number,
   stepTo: number,
@@ -14,25 +12,24 @@ export const processInsertedRanges = (
   // range that this step is trying to delete. These will be actually
   // deleted, rather than marked as deletions.
   // Skip this for pure insertions (where from === to), but do it for deletions and replacements
-  const isPureInsertion = step.from === step.to;
-  const insertedRanges: { from: number; to: number; id?: string | number }[] =
+  const isPureInsertion = stepFrom === stepTo;
+  // insertedRanges extends the step to contain block boundaries and neighbouring ZWSP
+  const insertedRanges: { from: number; to: number; id: string | number }[] =
     [];
 
   if (!isPureInsertion) {
     trackedTransaction.doc.nodesBetween(stepFrom, stepTo, (node, pos) => {
-      if (insertion.isInSet(node.marks)) {
-        const insertionMark = insertion.isInSet(node.marks);
-        const markId = insertionMark?.attrs["id"] as
-          | string
-          | number
-          | undefined;
-        const range: { from: number; to: number; id?: string | number } = {
+      const insertionMark = insertion.isInSet(node.marks);
+      const markId = insertionMark?.attrs["id"] as
+        | string
+        | number
+        | undefined;
+      if (insertionMark && markId !== undefined) {
+        const range: { from: number; to: number; id: string | number } = {
           from: Math.max(pos, stepFrom),
           to: Math.min(pos + node.nodeSize, stepTo),
+          id: markId,
         };
-        if (markId !== undefined) {
-          range.id = markId;
-        }
         insertedRanges.push(range);
         return false;
       }
@@ -58,55 +55,52 @@ export const processInsertedRanges = (
   if (isBlockBoundaryDeletion) {
     const $from = trackedTransaction.doc.resolve(stepFrom);
     const $to = trackedTransaction.doc.resolve(stepTo);
-
+    // TODO: Maybe we should just remove the last ZWSP instead of the whole insertion?
+    // The ZWSP might be missing  & the insertion content before the ZWSP should stay as it is
+    const insertionMark = $from.nodeBefore && insertion.isInSet($from.nodeBefore.marks);
+    const markId = insertionMark?.attrs["id"] as string | number | undefined;
+    // This case looks back and adds the whole range between the ZWSPs
     if (
       stepFrom > 0 &&
       $from.nodeBefore &&
-      insertion.isInSet($from.nodeBefore.marks)
+      insertionMark && markId
     ) {
-      const insertionMark = insertion.isInSet($from.nodeBefore.marks);
-      const markId = insertionMark?.attrs["id"] as string | number | undefined;
       const rangeFrom = stepFrom - $from.nodeBefore.nodeSize;
       if (rangeFrom >= 0) {
-        const range: { from: number; to: number; id?: string | number } = {
+        const range = {
           from: rangeFrom,
           to: stepFrom,
+          id: markId,
         };
-        if (markId !== undefined) {
-          range.id = markId;
-        }
         insertedRanges.push(range);
       }
     }
 
     // For $to.nodeAfter, we need to check if it's a block node with insertion-marked content
     // at the start, or if it's directly an insertion-marked text node
-    if (stepTo < trackedTransaction.doc.content.size && $to.nodeAfter) {
-      let nodeToCheck = $to.nodeAfter;
+    let nodeToCheck = $to.nodeAfter;
+    if (stepTo < trackedTransaction.doc.content.size && nodeToCheck) {
       let posOffset = 0;
-
       // If nodeAfter is a block node (like paragraph), check its first child
       if (nodeToCheck.isBlock && nodeToCheck.firstChild) {
         nodeToCheck = nodeToCheck.firstChild;
         posOffset = 1; // Account for the opening tag
       }
+      const insertionMark = insertion.isInSet(nodeToCheck.marks);
+      const markId = insertionMark?.attrs["id"] as
+        | string
+        | number
+        | undefined;
+      if (insertionMark && markId) {
 
-      if (insertion.isInSet(nodeToCheck.marks)) {
-        const insertionMark = insertion.isInSet(nodeToCheck.marks);
-        const markId = insertionMark?.attrs["id"] as
-          | string
-          | number
-          | undefined;
         const rangeFrom = stepTo + posOffset;
         const rangeTo = stepTo + posOffset + nodeToCheck.nodeSize;
         if (rangeTo <= trackedTransaction.doc.content.size) {
-          const range: { from: number; to: number; id?: string | number } = {
+          const range = {
             from: rangeFrom,
             to: rangeTo,
+            id: markId,
           };
-          if (markId !== undefined) {
-            range.id = markId;
-          }
           insertedRanges.push(range);
         }
       }

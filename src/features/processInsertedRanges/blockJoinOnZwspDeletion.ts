@@ -39,7 +39,7 @@ import { canJoin } from "prosemirror-transform";
  */
 export function handleBlockJoinOnZwspDeletion(
   trackedTransaction: Transaction,
-  insertedRanges: { from: number; to: number; id?: string | number }[],
+  insertedRanges: { from: number; to: number; id: string | number }[],
   insertion: MarkType,
 ): boolean {
   const blockJoinsToMake: { pos: number; id: string | number }[] = [];
@@ -54,12 +54,16 @@ export function handleBlockJoinOnZwspDeletion(
     const content = trackedTransaction.doc.textBetween(range.from, range.to);
 
     // Check if this is a zero-width space at a block boundary
-    if (content === "\u200B" && range.id !== undefined) {
+    if (content === "\u200B") {
       const $rangeEnd = trackedTransaction.doc.resolve(range.to);
       const $rangeStart = trackedTransaction.doc.resolve(range.from);
 
-      // CASE 1: Forward-looking detection (existing logic)
+
+      // CASE 1: Forward-looking detection
       // Delete pressed at end of first block
+      // Note: This forward-looking detection mirrors the backward-looking detection
+      // below. Both cases find paired ZWSPs and add them to the deletion list to
+      // ensure clean block joins.
       if (!$rangeEnd.nodeAfter) {
         const afterBlockPos = $rangeEnd.after($rangeEnd.depth);
 
@@ -75,12 +79,44 @@ export function handleBlockJoinOnZwspDeletion(
             const nextNodeMark = insertion.isInSet(nextNode.marks);
             if (nextNodeMark?.attrs["id"] === range.id) {
               blockJoinsToMake.push({ pos: afterBlockPos, id: range.id });
+
+              // FIX: Add the second ZWSP (in next block) to deletion list
+              // This mirrors the backward-looking detection behavior
+              const nextBlock = $afterBlock.nodeAfter;
+              if (nextBlock?.isBlock) {
+                // The ZWSP is at the start of the next block's content
+                // $afterBlock.pos is at the boundary, +1 gets us past the opening tag
+                const nextBlockStart = $afterBlock.pos + 1;
+                const zwspStart = nextBlockStart;
+                const zwspEnd = nextBlockStart + 1; // ZWSP is one character
+
+                // Only add if not already covered by an existing range
+                // Check for exact match or if ZWSP is contained within a larger range
+                const alreadyCovered =
+                  insertedRanges.some(
+                    (r) =>
+                      (r.from === zwspStart && r.to === zwspEnd) ||
+                      (r.from <= zwspStart && r.to >= zwspEnd),
+                  ) ||
+                  additionalRangesToDelete.some(
+                    (r) =>
+                      (r.from === zwspStart && r.to === zwspEnd) ||
+                      (r.from <= zwspStart && r.to >= zwspEnd),
+                  );
+
+                if (!alreadyCovered) {
+                  additionalRangesToDelete.push({
+                    from: zwspStart,
+                    to: zwspEnd,
+                    id: range.id,
+                  });
+                }
+              }
             }
           }
         }
       }
 
-      // CASE 2: Backward-looking detection (NEW - fixes the bug!)
       // Backspace pressed at start of second block
       if (!$rangeStart.nodeBefore) {
         const beforeBlockPos = $rangeStart.before($rangeStart.depth);
