@@ -77,7 +77,7 @@ src/features/processInsertedRanges/
 
 ## Testing
 
-- **Unit tests**: `src/__tests__/paragraph-backspace.test.ts`
+- **Unit tests**: `src/__tests__/paragraphBackspace.test.ts`
 - **E2E tests**: `src/__tests__/blockJoin.playwright.test.ts`
 
 ## Known Limitations
