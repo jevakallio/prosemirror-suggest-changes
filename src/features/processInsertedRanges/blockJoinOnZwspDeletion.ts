@@ -1,6 +1,6 @@
 import { type Transaction } from "prosemirror-state";
 import { type MarkType } from "prosemirror-model";
-import { canJoin } from "prosemirror-transform";
+import { canJoin, Mapping } from "prosemirror-transform";
 
 /**
  * Detects and handles block joins when zero-width space (ZWSP) pairs are deleted.
@@ -57,7 +57,6 @@ export function handleBlockJoinOnZwspDeletion(
     if (content === "\u200B") {
       const $rangeEnd = trackedTransaction.doc.resolve(range.to);
       const $rangeStart = trackedTransaction.doc.resolve(range.from);
-
 
       // CASE 1: Forward-looking detection
       // Delete pressed at end of first block
@@ -185,6 +184,9 @@ export function handleBlockJoinOnZwspDeletion(
   const allRangesToDelete = [...insertedRanges, ...additionalRangesToDelete];
   allRangesToDelete.sort((a, b) => b.from - a.from); // Sort in reverse order
 
+  // Track the step index before Phase 2 deletions
+  const phase2StartStep = trackedTransaction.steps.length;
+
   const hadInsertedContent = allRangesToDelete.length > 0;
   for (const range of allRangesToDelete) {
     // Validate range before deletion
@@ -201,9 +203,16 @@ export function handleBlockJoinOnZwspDeletion(
   // Process from end to start to maintain position validity
   blockJoinsToMake.reverse();
   const didBlockJoin = blockJoinsToMake.length > 0;
+
+  // Create a mapping for only the Phase 2 steps (ZWSP deletions)
+  // joinInfo.pos was calculated from the doc at the START of this function,
+  // so we only need to map through the changes made in Phase 2
+  const phase2Steps = trackedTransaction.steps.slice(phase2StartStep);
+  const phase2Mapping = new Mapping(phase2Steps.map((s) => s.getMap()));
+
   for (const joinInfo of blockJoinsToMake) {
-    // Map the position through all the changes we've made
-    const mappedPos = trackedTransaction.mapping.map(joinInfo.pos);
+    // Map the position through only the Phase 2 changes
+    const mappedPos = phase2Mapping.map(joinInfo.pos);
 
     // Only join if the position is still valid
     if (mappedPos > 0 && mappedPos < trackedTransaction.doc.content.size) {
