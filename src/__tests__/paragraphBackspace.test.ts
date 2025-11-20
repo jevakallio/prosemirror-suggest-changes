@@ -91,6 +91,11 @@ describe("Paragraph Backspace Behavior", () => {
       testBuilders.paragraph("second paragraph"),
     );
 
+    if (!eq(finalState.doc, expectedFinal)) {
+      console.log("MISMATCH!");
+      console.log("Expected:", JSON.stringify(expectedFinal.toJSON(), null, 2));
+      console.log("Actual:", JSON.stringify(finalState.doc.toJSON(), null, 2));
+    }
     assert(
       eq(finalState.doc, expectedFinal),
       "After backspace, document should return to original state",

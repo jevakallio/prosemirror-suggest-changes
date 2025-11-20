@@ -31,7 +31,7 @@ export function processBlockJoinsV2(
   stepFrom: number,
   stepTo: number,
   insertionMarkType: MarkType,
-): void {
+): boolean {
   const doc = trackedTransaction.doc;
 
   // Step 1: Find all insertion-marked content in the deletion range
@@ -118,21 +118,29 @@ export function processBlockJoinsV2(
     trackedTransaction.delete(range.from, range.to);
   }
 
+  // Map ZWSP positions through the insertion deletion steps
+  const insertionDeletionSteps = trackedTransaction.steps.slice(startStep);
+  const insertionDeletionMapping = new Mapping(insertionDeletionSteps.map((s) => s.getMap()));
+
+  const mappedZwspPositions = uniqueZwspPositions.map((pos) =>
+    insertionDeletionMapping.map(pos, 1)
+  );
+
   // Delete ZWSP positions (in reverse order)
   // ZWSPs are single characters, so we delete pos to pos+1
-  const sortedZwspPositions = [...uniqueZwspPositions].sort((a, b) => b - a);
+  const sortedZwspPositions = [...mappedZwspPositions].sort((a, b) => b - a);
   for (const pos of sortedZwspPositions) {
     trackedTransaction.delete(pos, pos + 1);
   }
 
   // Step 8: Join blocks (if any pairs were found)
   if (recalculatedGroups.length === 0) {
-    return;
+    return false;
   }
 
-  // Create mapping from all deletion steps
-  const deletionSteps = trackedTransaction.steps.slice(startStep);
-  const deletionMapping = new Mapping(deletionSteps.map((s) => s.getMap()));
+  // Create mapping from all deletion steps (both insertion deletions and ZWSP deletions)
+  const allDeletionSteps = trackedTransaction.steps.slice(startStep);
+  const deletionMapping = new Mapping(allDeletionSteps.map((s) => s.getMap()));
 
   // Sort groups by join position in reverse order (high to low)
   const sortedGroups = [...recalculatedGroups].sort((a, b) => b.joinPos - a.joinPos);
@@ -156,4 +164,7 @@ export function processBlockJoinsV2(
       // Position no longer valid for joining, skip
     }
   }
+
+  // Return true to indicate that block joins were processed
+  return true;
 }

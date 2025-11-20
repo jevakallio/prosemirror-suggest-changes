@@ -82,23 +82,42 @@ export function suggestReplaceStep(
   }
 
   // Process block joins and delete insertion-marked content
-  processBlockJoinsV2(
-    trackedTransaction,
-    stepFrom,
-    stepTo,
-    insertion,
-  );
+  // Only do this when actually deleting (stepFrom !== stepTo)
+  // Don't do this when inserting (step.slice.content.size > 0 with stepFrom === stepTo)
+  let didBlockJoin = false;
+  if (stepFrom !== stepTo) {
+    didBlockJoin = processBlockJoinsV2(
+      trackedTransaction,
+      stepFrom,
+      stepTo,
+      insertion,
+    );
+  }
 
   // Update the step boundaries, since we may have just changed
   // the document
   stepFrom = rebasePos(step.from, prevSteps, trackedTransaction.steps);
   stepTo = rebasePos(step.to, prevSteps, trackedTransaction.steps);
 
+  // Re-resolve nodeAfter and markAfter if we did a block join
+  // The original values are stale after processBlockJoinsV2 modifies the document
+  let nodeAfterResolved = nodeAfter;
+  let markAfterResolved = markAfter;
+  if (didBlockJoin) {
+    const $stepTo = trackedTransaction.doc.resolve(stepTo);
+    nodeAfterResolved = $stepTo.nodeAfter;
+    markAfterResolved =
+      nodeAfterResolved?.marks.find(
+        (mark) => mark.type === deletion || mark.type === insertion,
+      ) ?? null;
+  }
+
   // If there's a deletion, we need to check for and handle
   // the case where it crosses a block boundary, so that we
   // can leave zero-width spaces as markers if there's no other
   // content to anchor the deletion to.
-  if (stepFrom !== stepTo) {
+  // SKIP this if we just did a block join - we don't want to re-insert ZWSPs
+  if (stepFrom !== stepTo && !didBlockJoin) {
     let $stepFrom = trackedTransaction.doc.resolve(stepFrom);
     let $stepTo = trackedTransaction.doc.resolve(stepTo);
     // When there are no characters to mark with deletions before
@@ -207,16 +226,17 @@ export function suggestReplaceStep(
 
   // Detect when a new mark directly abuts an existing mark with
   // a different id and merge them
-  if (nodeAfter && markAfter && markAfter.attrs["id"] !== markId) {
+  // Use re-resolved values if we did a block join
+  if (nodeAfterResolved && markAfterResolved && markAfterResolved.attrs["id"] !== markId) {
     const $nodeAfterStart = trackedTransaction.doc.resolve(stepTo);
-    const nodeAfterEnd = $nodeAfterStart.pos + nodeAfter.nodeSize;
-    trackedTransaction.removeMark(stepTo, nodeAfterEnd, markAfter.type);
+    const nodeAfterEnd = $nodeAfterStart.pos + nodeAfterResolved.nodeSize;
+    trackedTransaction.removeMark(stepTo, nodeAfterEnd, markAfterResolved.type);
     trackedTransaction.addMark(
       stepTo,
       nodeAfterEnd,
-      markAfter.type.create({ id: markId }),
+      markAfterResolved.type.create({ id: markId }),
     );
-    if (markAfter.type === deletion) {
+    if (markAfterResolved.type === deletion) {
       const insertionNode =
         trackedTransaction.doc.resolve(nodeAfterEnd).nodeAfter;
       if (insertionNode && insertion.isInSet(insertionNode.marks)) {
@@ -236,7 +256,8 @@ export function suggestReplaceStep(
   }
 
   // Handle insertions
-  if (step.slice.content.size) {
+  // Skip insertion handling if we just did a block join - the join already handled it
+  if (step.slice.content.size && !didBlockJoin) {
     const $to = trackedTransaction.doc.resolve(stepTo);
 
     // Don't allow inserting content within an existing deletion
