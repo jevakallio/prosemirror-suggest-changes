@@ -96,9 +96,12 @@ function canJoinBlocks(zwsp1: ZwspInfo, zwsp2: ZwspInfo): boolean {
 }
 
 function calculateJoinPos(zwsp1: ZwspInfo, zwsp2: ZwspInfo): number {
-  // For blockEnd → blockStart pairs, join position is after the first ZWSP
+  // For blockEnd → blockStart pairs, the join position needs to be calculated
+  // Note: This is a placeholder. The actual join position will be recalculated
+  // in processBlockJoinsV2 using doc.resolve() to get the correct block boundary.
+  // For now, we return zwsp2.pos as an approximation (start of second block).
   if (zwsp1.isBlockEnd && zwsp2.isBlockStart) {
-    return zwsp1.pos + 1;
+    return zwsp2.pos;
   }
 
   // Fallback for invalid pairs (shouldn't happen with current logic)

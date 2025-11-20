@@ -10,7 +10,7 @@ import { findSuggestionMarkEnd } from "./findSuggestionMarkEnd.js";
 import { rebasePos } from "./rebasePos.js";
 import { getSuggestionMarks } from "./utils.js";
 import { type SuggestionId } from "./generateId.js";
-import { processInsertedRanges } from "./features/processInsertedRanges/index.js";
+import { processBlockJoinsV2 } from "./features/blockJoinV2/processBlockJoinsV2.js";
 
 /**
  * Transform a replace step into its equivalent tracked steps.
@@ -81,16 +81,13 @@ export function suggestReplaceStep(
     );
   }
 
-  const didHandleBlockJoin = processInsertedRanges(
+  // Process block joins and delete insertion-marked content
+  processBlockJoinsV2(
     trackedTransaction,
     stepFrom,
     stepTo,
     insertion,
   );
-
-  if (didHandleBlockJoin) {
-    return markId === suggestionId;
-  }
 
   // Update the step boundaries, since we may have just changed
   // the document
