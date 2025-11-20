@@ -4,12 +4,15 @@ import { extractInsertionMark, type Range } from "./utils.js";
 /**
  * Determine if we should check adjacent positions for insertion-marked content
  *
- * We only check adjacent positions for:
- * - Single character deletions (stepTo - stepFrom === 1), OR
- * - Small deletions (≤2 chars) that cross block boundaries
+ * We only check adjacent positions when:
+ * - The deletion crosses block boundaries, OR
+ * - The deletion is at the start or end of a block (where ZWSPs might exist)
  *
  * This handles the case where a paragraph split creates zero-width spaces
  * at block boundaries, and backspacing/deleting should remove them.
+ *
+ * We specifically DO NOT check for deletions in the middle of text content,
+ * as those should follow normal deletion behavior.
  *
  * @param stepFrom - Start position of the deletion
  * @param stepTo - End position of the deletion
@@ -29,7 +32,16 @@ export function shouldCheckAdjacentBoundaries(
   const crossesBlockBoundary = $stepFrom.parent !== $stepTo.parent;
   const isSmallDeletion = stepTo - stepFrom <= 2;
 
-  return isSmallDeletion && (stepTo - stepFrom === 1 || crossesBlockBoundary);
+  // Only check if we cross block boundaries
+  if (crossesBlockBoundary) {
+    return isSmallDeletion;
+  }
+
+  // Or if we're at the start or end of a block (where ZWSPs exist)
+  const atBlockStart = $stepFrom.parentOffset === 0;
+  const atBlockEnd = $stepTo.parentOffset === $stepTo.parent.content.size;
+
+  return isSmallDeletion && (atBlockStart || atBlockEnd);
 }
 
 /**
