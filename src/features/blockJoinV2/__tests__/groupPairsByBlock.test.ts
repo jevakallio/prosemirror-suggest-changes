@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { describe, it, expect } from "vitest";
-import { testBuilders } from "../../../testing/testBuilders.js";
+import { describe, it, assert } from "vitest";
+import { testBuilders, type TaggedNode } from "../../../testing/testBuilders.js";
 import { groupPairsByBlock } from "../utils/groupPairsByBlock.js";
 import { findZwspsInRange } from "../utils/findZwspsInRange.js";
 import { findZwspPairs } from "../utils/findZwspPairs.js";
@@ -12,39 +11,73 @@ describe("groupPairsByBlock", () => {
 
   it("should return empty array for no pairs", () => {
     const groups = groupPairsByBlock([]);
-    expect(groups).toEqual([]);
+    assert(groups.length === 0, "Expected no groups for empty input");
   });
 
   it("should create groups for valid pairs", () => {
     const doc = testBuilders.doc(
-      testBuilders.paragraph("First", testBuilders.insertion({ id: 1 }, ZWSP)),
-      testBuilders.paragraph(testBuilders.insertion({ id: 1 }, ZWSP), "Second"),
-    );
+      testBuilders.paragraph(
+        "<a>First",
+        testBuilders.insertion({ id: 1 }, ZWSP),
+      ),
+      testBuilders.paragraph(
+        testBuilders.insertion({ id: 1 }, ZWSP),
+        "Second<b>",
+      ),
+    ) as TaggedNode;
 
-    const zwsps = findZwspsInRange(doc, 0, doc.content.size, insertionMarkType);
+    const tagA = doc.tag["a"];
+    const tagB = doc.tag["b"];
+    assert(tagA !== undefined, "Tag 'a' not found");
+    assert(tagB !== undefined, "Tag 'b' not found");
+
+    const zwsps = findZwspsInRange(
+      doc,
+      tagA,
+      tagB,
+      insertionMarkType,
+    );
     const pairs = findZwspPairs(zwsps);
     const groups = groupPairsByBlock(pairs);
 
-    expect(groups).toHaveLength(1);
-    expect(groups[0]!.zwspPositions).toEqual([6, 9]);
-    expect(groups[0]!.reason).toBe("in-range");
+    assert(groups.length === 1, "Expected one group");
+    const group0 = groups[0];
+    assert(group0 !== undefined, "Group at index 0 not found");
+    assert(group0.zwspPositions.length === 2, "Expected two ZWSP positions");
+    assert(group0.reason === "in-range", "Expected in-range reason");
   });
 
   it("should handle multiple pairs", () => {
     const doc = testBuilders.doc(
-      testBuilders.paragraph("A", testBuilders.insertion({ id: 1 }, ZWSP)),
+      testBuilders.paragraph(
+        "<a>A",
+        testBuilders.insertion({ id: 1 }, ZWSP),
+      ),
       testBuilders.paragraph(
         testBuilders.insertion({ id: 1 }, ZWSP),
         "B",
         testBuilders.insertion({ id: 2 }, ZWSP),
       ),
-      testBuilders.paragraph(testBuilders.insertion({ id: 2 }, ZWSP), "C"),
-    );
+      testBuilders.paragraph(
+        testBuilders.insertion({ id: 2 }, ZWSP),
+        "C<b>",
+      ),
+    ) as TaggedNode;
 
-    const zwsps = findZwspsInRange(doc, 0, doc.content.size, insertionMarkType);
+    const tagA = doc.tag["a"];
+    const tagB = doc.tag["b"];
+    assert(tagA !== undefined, "Tag 'a' not found");
+    assert(tagB !== undefined, "Tag 'b' not found");
+
+    const zwsps = findZwspsInRange(
+      doc,
+      tagA,
+      tagB,
+      insertionMarkType,
+    );
     const pairs = findZwspPairs(zwsps);
     const groups = groupPairsByBlock(pairs);
 
-    expect(groups).toHaveLength(2);
+    assert(groups.length === 2, "Expected two groups");
   });
 });

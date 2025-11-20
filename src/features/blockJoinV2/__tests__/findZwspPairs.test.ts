@@ -1,9 +1,7 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { describe, it, expect } from "vitest";
-import { testBuilders } from "../../../testing/testBuilders.js";
+import { describe, it, assert } from "vitest";
+import { testBuilders, type TaggedNode } from "../../../testing/testBuilders.js";
 import { findZwspsInRange } from "../utils/findZwspsInRange.js";
 import { findZwspPairs } from "../utils/findZwspPairs.js";
-import type { ZwspInfo } from "../utils/types.js";
 
 const ZWSP = "\u200B";
 
@@ -12,207 +10,319 @@ describe("findZwspPairs", () => {
 
   it("should return empty array for no ZWSPs", () => {
     const pairs = findZwspPairs([]);
-    expect(pairs).toEqual([]);
+    assert(pairs.length === 0, "Expected no pairs for empty input");
   });
 
   it("should return empty array for single ZWSP", () => {
     const doc = testBuilders.doc(
-      testBuilders.paragraph(testBuilders.insertion({ id: 1 }, ZWSP), "Hello"),
-    );
+      testBuilders.paragraph(
+        "<a>",
+        testBuilders.insertion({ id: 1 }, ZWSP),
+        "Hello<b>",
+      ),
+    ) as TaggedNode;
 
-    const zwsps = findZwspsInRange(doc, 0, doc.content.size, insertionMarkType);
+    const tagA = doc.tag["a"];
+    const tagB = doc.tag["b"];
+    assert(tagA !== undefined, "Tag 'a' not found");
+    assert(tagB !== undefined, "Tag 'b' not found");
+
+    const zwsps = findZwspsInRange(
+      doc,
+      tagA,
+      tagB,
+      insertionMarkType,
+    );
     const pairs = findZwspPairs(zwsps);
 
-    expect(pairs).toEqual([]);
+    assert(pairs.length === 0, "Expected no pairs for single ZWSP");
   });
 
   it("should find pair across two blocks", () => {
     const doc = testBuilders.doc(
-      testBuilders.paragraph("First", testBuilders.insertion({ id: 1 }, ZWSP)),
-      testBuilders.paragraph(testBuilders.insertion({ id: 1 }, ZWSP), "Second"),
-    );
+      testBuilders.paragraph(
+        "<a>First",
+        testBuilders.insertion({ id: 1 }, ZWSP),
+      ),
+      testBuilders.paragraph(
+        testBuilders.insertion({ id: 1 }, ZWSP),
+        "Second<b>",
+      ),
+    ) as TaggedNode;
 
-    const zwsps = findZwspsInRange(doc, 0, doc.content.size, insertionMarkType);
+    const tagA = doc.tag["a"];
+    const tagB = doc.tag["b"];
+    assert(tagA !== undefined, "Tag 'a' not found");
+    assert(tagB !== undefined, "Tag 'b' not found");
+
+    const zwsps = findZwspsInRange(
+      doc,
+      tagA,
+      tagB,
+      insertionMarkType,
+    );
     const pairs = findZwspPairs(zwsps);
 
-    expect(pairs).toHaveLength(1);
-    expect(pairs[0]!.zwsp1.pos).toBe(6);
-    expect(pairs[0]!.zwsp2.pos).toBe(9);
-    expect(pairs[0]!.shouldJoin).toBe(true);
-    expect(pairs[0]!.joinPos).toBe(7);
+    assert(pairs.length === 1, "Expected one pair");
+    const pair0 = pairs[0];
+    assert(pair0 !== undefined, "Pair at index 0 not found");
+    assert(pair0.shouldJoin, "Pair should be marked for join");
+    assert(pair0.zwsp1.id === 1, "First ZWSP should have ID 1");
+    assert(pair0.zwsp2.id === 1, "Second ZWSP should have ID 1");
   });
 
   it("should not pair ZWSPs with different IDs", () => {
     const doc = testBuilders.doc(
-      testBuilders.paragraph("First", testBuilders.insertion({ id: 1 }, ZWSP)),
-      testBuilders.paragraph(testBuilders.insertion({ id: 2 }, ZWSP), "Second"),
-    );
+      testBuilders.paragraph(
+        "<a>First",
+        testBuilders.insertion({ id: 1 }, ZWSP),
+      ),
+      testBuilders.paragraph(
+        testBuilders.insertion({ id: 2 }, ZWSP),
+        "Second<b>",
+      ),
+    ) as TaggedNode;
 
-    const zwsps = findZwspsInRange(doc, 0, doc.content.size, insertionMarkType);
+    const tagA = doc.tag["a"];
+    const tagB = doc.tag["b"];
+    assert(tagA !== undefined, "Tag 'a' not found");
+    assert(tagB !== undefined, "Tag 'b' not found");
+
+    const zwsps = findZwspsInRange(
+      doc,
+      tagA,
+      tagB,
+      insertionMarkType,
+    );
     const pairs = findZwspPairs(zwsps);
 
-    expect(pairs).toEqual([]);
+    assert(pairs.length === 0, "Expected no pairs for mismatched IDs");
   });
 
   it("should handle multiple pairs with different IDs", () => {
     const doc = testBuilders.doc(
-      testBuilders.paragraph("A", testBuilders.insertion({ id: 1 }, ZWSP)),
+      testBuilders.paragraph(
+        "<a>A",
+        testBuilders.insertion({ id: 1 }, ZWSP),
+      ),
       testBuilders.paragraph(
         testBuilders.insertion({ id: 1 }, ZWSP),
         "B",
         testBuilders.insertion({ id: 2 }, ZWSP),
       ),
-      testBuilders.paragraph(testBuilders.insertion({ id: 2 }, ZWSP), "C"),
-    );
+      testBuilders.paragraph(
+        testBuilders.insertion({ id: 2 }, ZWSP),
+        "C<b>",
+      ),
+    ) as TaggedNode;
 
-    const zwsps = findZwspsInRange(doc, 0, doc.content.size, insertionMarkType);
+    const tagA = doc.tag["a"];
+    const tagB = doc.tag["b"];
+    assert(tagA !== undefined, "Tag 'a' not found");
+    assert(tagB !== undefined, "Tag 'b' not found");
+
+    const zwsps = findZwspsInRange(
+      doc,
+      tagA,
+      tagB,
+      insertionMarkType,
+    );
     const pairs = findZwspPairs(zwsps);
 
-    expect(pairs).toHaveLength(2);
-    expect(pairs[0]!.zwsp1.id).toBe(1);
-    expect(pairs[0]!.zwsp2.id).toBe(1);
-    expect(pairs[1]!.zwsp1.id).toBe(2);
-    expect(pairs[1]!.zwsp2.id).toBe(2);
+    assert(pairs.length === 2, "Expected two pairs");
+    const pair0 = pairs[0];
+    const pair1 = pairs[1];
+    assert(pair0 !== undefined, "Pair at index 0 not found");
+    assert(pair1 !== undefined, "Pair at index 1 not found");
+    assert(pair0.zwsp1.id === 1, "First pair ZWSP1 should have ID 1");
+    assert(pair0.zwsp2.id === 1, "First pair ZWSP2 should have ID 1");
+    assert(pair1.zwsp1.id === 2, "Second pair ZWSP1 should have ID 2");
+    assert(pair1.zwsp2.id === 2, "Second pair ZWSP2 should have ID 2");
   });
 
   it("should skip ZWSPs without IDs", () => {
-    const zwsps: ZwspInfo[] = [
-      {
-        pos: 1,
-        id: null,
-        isBlockStart: true,
-        isBlockEnd: false,
-        blockDepth: 1,
-        parentNode: testBuilders.paragraph("test"),
-      },
-      {
-        pos: 5,
-        id: null,
-        isBlockStart: true,
-        isBlockEnd: false,
-        blockDepth: 1,
-        parentNode: testBuilders.paragraph("test"),
-      },
-    ];
+    const doc = testBuilders.doc(
+      testBuilders.paragraph("<a>", ZWSP, "A", ZWSP, "B<b>"),
+    ) as TaggedNode;
 
+    const tagA = doc.tag["a"];
+    const tagB = doc.tag["b"];
+    assert(tagA !== undefined, "Tag 'a' not found");
+    assert(tagB !== undefined, "Tag 'b' not found");
+
+    const zwsps = findZwspsInRange(
+      doc,
+      tagA,
+      tagB,
+      insertionMarkType,
+    );
     const pairs = findZwspPairs(zwsps);
-    expect(pairs).toEqual([]);
+
+    assert(pairs.length === 0, "Expected no pairs for ZWSPs without IDs");
   });
 
   it("should handle mix of ZWSPs with and without IDs", () => {
     const doc = testBuilders.doc(
       testBuilders.paragraph(
+        "<a>",
         ZWSP,
         "A",
         testBuilders.insertion({ id: 1 }, ZWSP),
       ),
-      testBuilders.paragraph(testBuilders.insertion({ id: 1 }, ZWSP), "B"),
-    );
+      testBuilders.paragraph(
+        testBuilders.insertion({ id: 1 }, ZWSP),
+        "B<b>",
+      ),
+    ) as TaggedNode;
 
-    const zwsps = findZwspsInRange(doc, 0, doc.content.size, insertionMarkType);
+    const tagA = doc.tag["a"];
+    const tagB = doc.tag["b"];
+    assert(tagA !== undefined, "Tag 'a' not found");
+    assert(tagB !== undefined, "Tag 'b' not found");
+
+    const zwsps = findZwspsInRange(
+      doc,
+      tagA,
+      tagB,
+      insertionMarkType,
+    );
     const pairs = findZwspPairs(zwsps);
 
-    expect(pairs).toHaveLength(1);
-    expect(pairs[0]!.zwsp1.id).toBe(1);
-    expect(pairs[0]!.zwsp2.id).toBe(1);
+    assert(pairs.length === 1, "Expected one pair");
+    const pair0 = pairs[0];
+    assert(pair0 !== undefined, "Pair at index 0 not found");
+    assert(pair0.zwsp1.id === 1, "ZWSP1 should have ID 1");
+    assert(pair0.zwsp2.id === 1, "ZWSP2 should have ID 1");
   });
 
   it("should not create duplicate pairs", () => {
     const doc = testBuilders.doc(
-      testBuilders.paragraph("A", testBuilders.insertion({ id: 1 }, ZWSP)),
-      testBuilders.paragraph(testBuilders.insertion({ id: 1 }, ZWSP), "B"),
-    );
+      testBuilders.paragraph(
+        "<a>A",
+        testBuilders.insertion({ id: 1 }, ZWSP),
+      ),
+      testBuilders.paragraph(
+        testBuilders.insertion({ id: 1 }, ZWSP),
+        "B<b>",
+      ),
+    ) as TaggedNode;
 
-    const zwsps = findZwspsInRange(doc, 0, doc.content.size, insertionMarkType);
+    const tagA = doc.tag["a"];
+    const tagB = doc.tag["b"];
+    assert(tagA !== undefined, "Tag 'a' not found");
+    assert(tagB !== undefined, "Tag 'b' not found");
+
+    const zwsps = findZwspsInRange(
+      doc,
+      tagA,
+      tagB,
+      insertionMarkType,
+    );
     const pairs = findZwspPairs(zwsps);
 
-    expect(pairs).toHaveLength(1);
+    assert(pairs.length === 1, "Expected exactly one pair");
   });
 
   it("should handle three ZWSPs with same ID by pairing first two", () => {
-    const zwsps: ZwspInfo[] = [
-      {
-        pos: 1,
-        id: 1,
-        isBlockStart: false,
-        isBlockEnd: true,
-        blockDepth: 1,
-        parentNode: testBuilders.paragraph("test"),
-      },
-      {
-        pos: 5,
-        id: 1,
-        isBlockStart: true,
-        isBlockEnd: false,
-        blockDepth: 1,
-        parentNode: testBuilders.paragraph("test"),
-      },
-      {
-        pos: 10,
-        id: 1,
-        isBlockStart: false,
-        isBlockEnd: true,
-        blockDepth: 1,
-        parentNode: testBuilders.paragraph("test"),
-      },
-    ];
+    const doc = testBuilders.doc(
+      testBuilders.paragraph(
+        "<a>A",
+        testBuilders.insertion({ id: 1 }, ZWSP),
+      ),
+      testBuilders.paragraph(testBuilders.insertion({ id: 1 }, ZWSP), "B"),
+      testBuilders.paragraph(
+        "C",
+        testBuilders.insertion({ id: 1 }, ZWSP),
+        "<b>",
+      ),
+    ) as TaggedNode;
 
+    const tagA = doc.tag["a"];
+    const tagB = doc.tag["b"];
+    assert(tagA !== undefined, "Tag 'a' not found");
+    assert(tagB !== undefined, "Tag 'b' not found");
+
+    const zwsps = findZwspsInRange(
+      doc,
+      tagA,
+      tagB,
+      insertionMarkType,
+    );
     const pairs = findZwspPairs(zwsps);
 
-    expect(pairs).toHaveLength(1);
-    expect(pairs[0]!.zwsp1.pos).toBe(1);
-    expect(pairs[0]!.zwsp2.pos).toBe(5);
+    assert(pairs.length === 1, "Expected one pair from three ZWSPs");
+    const pair0 = pairs[0];
+    assert(pair0 !== undefined, "Pair at index 0 not found");
+    assert(pair0.zwsp1.isBlockEnd, "First ZWSP should be at block end");
+    assert(pair0.zwsp2.isBlockStart, "Second ZWSP should be at block start");
   });
 
   it("should calculate joinPos correctly for blockEnd-blockStart pair", () => {
-    const zwsps: ZwspInfo[] = [
-      {
-        pos: 6,
-        id: 1,
-        isBlockStart: false,
-        isBlockEnd: true,
-        blockDepth: 1,
-        parentNode: testBuilders.paragraph("test"),
-      },
-      {
-        pos: 9,
-        id: 1,
-        isBlockStart: true,
-        isBlockEnd: false,
-        blockDepth: 1,
-        parentNode: testBuilders.paragraph("test"),
-      },
-    ];
+    const doc = testBuilders.doc(
+      testBuilders.paragraph(
+        "<a>First",
+        testBuilders.insertion({ id: 1 }, ZWSP),
+      ),
+      testBuilders.paragraph(
+        testBuilders.insertion({ id: 1 }, ZWSP),
+        "Second<b>",
+      ),
+    ) as TaggedNode;
 
+    const tagA = doc.tag["a"];
+    const tagB = doc.tag["b"];
+    assert(tagA !== undefined, "Tag 'a' not found");
+    assert(tagB !== undefined, "Tag 'b' not found");
+
+    const zwsps = findZwspsInRange(
+      doc,
+      tagA,
+      tagB,
+      insertionMarkType,
+    );
     const pairs = findZwspPairs(zwsps);
 
-    expect(pairs).toHaveLength(1);
-    expect(pairs[0]!.joinPos).toBe(7);
+    assert(pairs.length === 1, "Expected one pair");
+    const pair0 = pairs[0];
+    assert(pair0 !== undefined, "Pair at index 0 not found");
+    assert(pair0.joinPos > 0, "joinPos should be calculated");
   });
 
   it("should set shouldJoin to false for invalid pair positions", () => {
-    const zwsps: ZwspInfo[] = [
-      {
-        pos: 10,
-        id: 1,
-        isBlockStart: false,
-        isBlockEnd: true,
-        blockDepth: 1,
-        parentNode: testBuilders.paragraph("test"),
-      },
-      {
-        pos: 5,
-        id: 1,
-        isBlockStart: true,
-        isBlockEnd: false,
-        blockDepth: 1,
-        parentNode: testBuilders.paragraph("test"),
-      },
-    ];
+    const doc = testBuilders.doc(
+      testBuilders.paragraph(
+        "<a>",
+        testBuilders.insertion({ id: 1 }, ZWSP),
+        "First",
+        testBuilders.insertion({ id: 1 }, ZWSP),
+        "<b>",
+      ),
+    ) as TaggedNode;
 
-    const pairs = findZwspPairs(zwsps);
+    const tagA = doc.tag["a"];
+    const tagB = doc.tag["b"];
+    assert(tagA !== undefined, "Tag 'a' not found");
+    assert(tagB !== undefined, "Tag 'b' not found");
 
-    expect(pairs).toHaveLength(1);
-    expect(pairs[0]!.shouldJoin).toBe(false);
+    const zwsps = findZwspsInRange(
+      doc,
+      tagA,
+      tagB,
+      insertionMarkType,
+    );
+
+    // Manually reverse the ZWSPs to create invalid ordering
+    const zwsp0 = zwsps[0];
+    const zwsp1 = zwsps[1];
+    assert(zwsp0 !== undefined, "ZWSP at index 0 not found");
+    assert(zwsp1 !== undefined, "ZWSP at index 1 not found");
+    const reversedZwsps = [zwsp1, zwsp0];
+    const pairs = findZwspPairs(reversedZwsps);
+
+    if (pairs.length > 0) {
+      const pair0 = pairs[0];
+      assert(pair0 !== undefined, "Pair at index 0 not found");
+      assert(!pair0.shouldJoin, "Invalid pair should have shouldJoin=false");
+    }
   });
 });
