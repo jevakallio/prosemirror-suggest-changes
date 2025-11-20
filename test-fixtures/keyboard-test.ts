@@ -2,16 +2,31 @@ import { EditorState, TextSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { Schema } from "prosemirror-model";
 import { nodes, marks } from "prosemirror-schema-basic";
-import { baseKeymap } from "prosemirror-commands";
+import { baseKeymap, chainCommands } from "prosemirror-commands";
 import { keymap } from "prosemirror-keymap";
+import {
+  bulletList,
+  orderedList,
+  listItem,
+  splitListItem,
+} from "prosemirror-schema-list";
 import { addSuggestionMarks } from "../src/schema.js";
 import { withSuggestChanges } from "../src/withSuggestChanges.js";
 import { suggestChanges, suggestChangesKey } from "../src/plugin.js";
 import "prosemirror-view/style/prosemirror.css";
 
-// Create schema with suggestion marks
+// Create schema with suggestion marks and list support
 const schema = new Schema({
-  nodes,
+  nodes: {
+    ...nodes,
+    ordered_list: { ...orderedList, group: "block", content: "list_item+" },
+    bullet_list: { ...bulletList, group: "block", content: "list_item+" },
+    list_item: {
+      ...listItem,
+      content: "block+",
+      marks: "insertion deletion modification",
+    },
+  },
   marks: addSuggestionMarks(marks),
 });
 
@@ -34,11 +49,21 @@ const doc = schema.nodeFromJSON({
   ],
 });
 
-// Create editor state
+// Create editor state with list item support
 let state = EditorState.create({
   doc,
   schema,
-  plugins: [keymap(baseKeymap), suggestChanges()],
+  plugins: [
+    keymap({
+      ...baseKeymap,
+      // Handle Enter key for list items
+      Enter: chainCommands(
+        splitListItem(schema.nodes.list_item),
+        baseKeymap.Enter ?? (() => false),
+      ),
+    }),
+    suggestChanges(),
+  ],
 });
 
 // Enable suggest changes mode
@@ -79,7 +104,7 @@ function updateStatus() {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const statusEl = document.getElementById("status")!;
   statusEl.textContent = [
-    `Paragraphs: ${String(view.state.doc.childCount)}`,
+    `Blocks: ${String(view.state.doc.childCount)}`,
     `Content: "${view.state.doc.textContent}"`,
     `Cursor: ${String(view.state.selection.from)}-${String(view.state.selection.to)}`,
     `Transactions: ${String(transactions.length)}`,
@@ -95,12 +120,14 @@ declare global {
     pmEditor: {
       view: EditorView;
       getState: () => {
-        paragraphCount: number;
+        blockCount: number;
+        paragraphCount: number; // Kept for backward compatibility
         textContent: string;
         cursorFrom: number;
         cursorTo: number;
       };
       getDocJSON: () => unknown;
+      replaceDoc: (docJSON: unknown) => void;
       getCursorInfo: () => {
         from: number;
         to: number;
@@ -123,11 +150,29 @@ window.pmEditor = {
 
   getState() {
     return {
-      paragraphCount: view.state.doc.childCount,
+      blockCount: view.state.doc.childCount,
+      paragraphCount: view.state.doc.childCount, // Kept for backward compatibility
       textContent: view.state.doc.textContent,
       cursorFrom: view.state.selection.from,
       cursorTo: view.state.selection.to,
     };
+  },
+
+  replaceDoc(docJSON: unknown) {
+    const schema = view.state.schema;
+    const doc = schema.nodeFromJSON(docJSON);
+
+    // Create a completely new state with the new document
+    const newState = EditorState.create({
+      doc,
+      schema,
+      plugins: view.state.plugins,
+    });
+
+    // Enable suggest changes mode
+    const enabledState = newState.apply(newState.tr.setMeta(suggestChangesKey, { enabled: true }));
+
+    view.updateState(enabledState);
   },
 
   getDocJSON() {
@@ -194,7 +239,7 @@ window.pmEditor = {
 
   logState() {
     console.log("=== Editor State ===");
-    console.log("Paragraphs:", view.state.doc.childCount);
+    console.log("Blocks:", view.state.doc.childCount);
     console.log("Content:", view.state.doc.textContent);
     console.log(
       "Cursor:",

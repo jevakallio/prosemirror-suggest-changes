@@ -466,4 +466,277 @@ test.describe("Block Join E2E - Real Keyboard Events", () => {
       expect(finalState.textContent).toBe(initialState.textContent);
     });
   });
+
+  test.describe("List Item Block Join Behavior", () => {
+    test.beforeEach(async ({ page }) => {
+      // Create a fresh document with a bullet list
+      await page.evaluate(() => {
+        window.pmEditor.replaceDoc({
+          type: "doc",
+          content: [
+            {
+              type: "bullet_list",
+              content: [
+                {
+                  type: "list_item",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [{ type: "text", text: "test item" }],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        });
+      });
+
+      // Clear transaction history
+      await page.evaluate(() => {
+        window.pmEditor.clearTransactions();
+      });
+
+      // Focus the editor
+      await page.locator("#editor .ProseMirror").click();
+    });
+
+    test("Bullet list: Enter then Backspace should rejoin list items", async ({
+      page,
+    }) => {
+      console.log("\n📝 TEST: Bullet List Enter → Backspace");
+
+      // Get initial state
+      const initialState = await page.evaluate(() =>
+        window.pmEditor.getState(),
+      );
+      const initialDoc = await page.evaluate(() =>
+        window.pmEditor.getDocJSON(),
+      );
+      console.log("Initial doc:", JSON.stringify(initialDoc, null, 2));
+      console.log("Initial state:", initialState);
+
+      // Move cursor to end of list item
+      await page.evaluate(() => {
+        window.pmEditor.setCursorToEnd();
+      });
+
+      const cursorBefore = await page.evaluate(() =>
+        window.pmEditor.getCursorInfo(),
+      );
+      console.log("Cursor before Enter:", cursorBefore);
+
+      // Press Enter to split list item
+      console.log("\n⚡ Simulating ENTER key to split list item...");
+      await page.keyboard.press("Enter");
+      await page.waitForTimeout(100);
+
+      // Get state after Enter
+      const afterEnterState = await page.evaluate(() =>
+        window.pmEditor.getState(),
+      );
+      const afterEnterDoc = await page.evaluate(() =>
+        window.pmEditor.getDocJSON(),
+      );
+      const afterEnterCursor = await page.evaluate(() =>
+        window.pmEditor.getCursorInfo(),
+      );
+
+      console.log("After Enter doc:", JSON.stringify(afterEnterDoc, null, 2));
+      console.log("After Enter state:", afterEnterState);
+      console.log("Cursor after Enter:", afterEnterCursor);
+
+      // Verify list was split (should still have 1 bullet_list, but with 2 list_items)
+      expect(afterEnterState.blockCount).toBe(1); // Still one bullet_list block
+
+      // Press Backspace to rejoin list items
+      console.log("\n⬅️ Simulating BACKSPACE key...");
+      await page.keyboard.press("Backspace");
+      await page.waitForTimeout(100);
+
+      // Get final state
+      const finalState = await page.evaluate(() => window.pmEditor.getState());
+      const finalDoc = await page.evaluate(() => window.pmEditor.getDocJSON());
+
+      console.log("After Backspace doc:", JSON.stringify(finalDoc, null, 2));
+      console.log("Final state:", finalState);
+
+      // Log all transactions
+      const transactions = await page.evaluate(() =>
+        window.pmEditor.getTransactions(),
+      );
+      console.log("Transactions:", JSON.stringify(transactions, null, 2));
+
+      // Verify document reverted to original state
+      console.log("\n🔍 OBSERVATION:");
+      console.log("Initial text:", initialState.textContent);
+      console.log("Final text:", finalState.textContent);
+      console.log("Initial blocks:", initialState.blockCount);
+      console.log("Final blocks:", finalState.blockCount);
+
+      // The key assertion: Backspace should join the list items back together
+      expect(finalState.blockCount).toBe(1);
+      expect(finalState.textContent).toBe(initialState.textContent);
+      expect(JSON.stringify(finalDoc)).toBe(JSON.stringify(initialDoc));
+    });
+
+    test("Ordered list: Enter then Backspace should rejoin list items", async ({
+      page,
+    }) => {
+      console.log("\n📝 TEST: Ordered List Enter → Backspace");
+
+      // Create an ordered list instead
+      await page.evaluate(() => {
+        window.pmEditor.replaceDoc({
+          type: "doc",
+          content: [
+            {
+              type: "ordered_list",
+              content: [
+                {
+                  type: "list_item",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [{ type: "text", text: "first item" }],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        });
+      });
+
+      // Clear transaction history
+      await page.evaluate(() => {
+        window.pmEditor.clearTransactions();
+      });
+
+      // Get initial state
+      const initialState = await page.evaluate(() =>
+        window.pmEditor.getState(),
+      );
+      const initialDoc = await page.evaluate(() =>
+        window.pmEditor.getDocJSON(),
+      );
+      console.log("Initial doc:", JSON.stringify(initialDoc, null, 2));
+
+      // Move cursor to end
+      await page.evaluate(() => {
+        window.pmEditor.setCursorToEnd();
+      });
+
+      // Press Enter
+      console.log("\n⚡ ENTER to split ordered list item...");
+      await page.keyboard.press("Enter");
+      await page.waitForTimeout(100);
+
+      const afterEnter = await page.evaluate(() =>
+        window.pmEditor.getDocJSON(),
+      );
+      console.log("After Enter:", JSON.stringify(afterEnter, null, 2));
+
+      // Press Backspace
+      console.log("\n⬅️ BACKSPACE...");
+      await page.keyboard.press("Backspace");
+      await page.waitForTimeout(100);
+
+      const finalState = await page.evaluate(() => window.pmEditor.getState());
+      const finalDoc = await page.evaluate(() => window.pmEditor.getDocJSON());
+      console.log("Final doc:", JSON.stringify(finalDoc, null, 2));
+
+      // Verify document reverted
+      expect(finalState.textContent).toBe(initialState.textContent);
+      expect(JSON.stringify(finalDoc)).toBe(JSON.stringify(initialDoc));
+    });
+
+    test("List item: Enter at middle of text then Backspace", async ({
+      page,
+    }) => {
+      console.log("\n📝 TEST: List item Enter at middle then Backspace");
+
+      // Get initial state
+      const initialState = await page.evaluate(() =>
+        window.pmEditor.getState(),
+      );
+      const initialDoc = await page.evaluate(() =>
+        window.pmEditor.getDocJSON(),
+      );
+      console.log("Initial text:", initialState.textContent);
+
+      // Position cursor in the middle of "test item" (after "test ")
+      // bullet_list is at pos 0, list_item at pos 1, paragraph at pos 2, text starts at pos 3
+      // "test " is 5 characters, so position 3 + 5 = 8
+      await page.evaluate(() => {
+        window.pmEditor.setCursorToPosition(8);
+      });
+
+      const cursorBefore = await page.evaluate(() =>
+        window.pmEditor.getCursorInfo(),
+      );
+      console.log("Cursor before Enter:", cursorBefore);
+
+      // Press Enter
+      console.log("\n⚡ ENTER at middle...");
+      await page.keyboard.press("Enter");
+      await page.waitForTimeout(100);
+
+      const afterEnter = await page.evaluate(() =>
+        window.pmEditor.getDocJSON(),
+      );
+      console.log("After Enter:", JSON.stringify(afterEnter, null, 2));
+
+      // Press Backspace
+      console.log("\n⬅️ BACKSPACE...");
+      await page.keyboard.press("Backspace");
+      await page.waitForTimeout(100);
+
+      const finalState = await page.evaluate(() => window.pmEditor.getState());
+      const finalDoc = await page.evaluate(() => window.pmEditor.getDocJSON());
+      console.log("Final doc:", JSON.stringify(finalDoc, null, 2));
+
+      // Should rejoin to original state
+      expect(finalState.textContent).toBe(initialState.textContent);
+      expect(JSON.stringify(finalDoc)).toBe(JSON.stringify(initialDoc));
+    });
+
+    test("List item: Multiple sequential splits/joins", async ({ page }) => {
+      console.log("\n📝 TEST: List item multiple splits/joins");
+
+      const initialState = await page.evaluate(() =>
+        window.pmEditor.getState(),
+      );
+      const initialDoc = await page.evaluate(() =>
+        window.pmEditor.getDocJSON(),
+      );
+
+      // Perform 3 Enter/Backspace cycles
+      for (let i = 1; i <= 3; i++) {
+        console.log(`\n=== Cycle ${String(i)} ===`);
+
+        await page.evaluate(() => {
+          window.pmEditor.setCursorToEnd();
+        });
+
+        console.log("Enter...");
+        await page.keyboard.press("Enter");
+        await page.waitForTimeout(50);
+
+        console.log("Backspace...");
+        await page.keyboard.press("Backspace");
+        await page.waitForTimeout(50);
+
+        console.log(`Cycle ${String(i)} complete`);
+      }
+
+      const finalState = await page.evaluate(() => window.pmEditor.getState());
+      const finalDoc = await page.evaluate(() => window.pmEditor.getDocJSON());
+      console.log("\n🔍 Final state after 3 cycles:", finalState);
+
+      // Should still be in original state
+      expect(finalState.textContent).toBe(initialState.textContent);
+      expect(JSON.stringify(finalDoc)).toBe(JSON.stringify(initialDoc));
+    });
+  });
 });

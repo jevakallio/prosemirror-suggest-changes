@@ -30,4 +30,6 @@ export interface BlockJoinGroup {
   joinPos: number;
   zwspPositions: number[];
   reason: JoinReason;
+  needsNestedJoin?: boolean;
+  nestedJoinPos?: number;
 }

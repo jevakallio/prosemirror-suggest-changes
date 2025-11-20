@@ -58,15 +58,22 @@ export function processBlockJoinsV2(
     insertionMarkType,
   );
 
-  // Step 4: Combine all ZWSPs
-  const allZwsps = [
-    ...zwspsInRange,
-    ...borderInfo.leftZwsps,
-    ...borderInfo.rightZwsps,
-  ];
+  // Step 4: Find pairs within range
+  const pairsInRange = findZwspPairs(zwspsInRange);
 
-  // Step 5: Find all valid ZWSP pairs
-  const pairs = findZwspPairs(allZwsps);
+  // Step 5: Determine which pairs to process
+  // - If deletion range is non-empty: only pairs where at least one ZWSP is in range
+  // - If deletion range is empty (point deletion): also include pairs from border ZWSPs
+  let pairs: ReturnType<typeof findZwspPairs>;
+  if (stepFrom < stepTo) {
+    // Non-empty range: only use pairs that touch the deletion range
+    pairs = [...pairsInRange, ...borderInfo.pairsAcrossBorder];
+  } else {
+    // Empty range (point deletion): use all pairs formed by border ZWSPs
+    const allBorderZwsps = [...borderInfo.leftZwsps, ...borderInfo.rightZwsps];
+    const borderPairs = findZwspPairs(allBorderZwsps);
+    pairs = borderPairs;
+  }
 
   // Step 6: Group pairs into block join operations
   const groups = groupPairsByBlock(pairs);
@@ -78,11 +85,52 @@ export function processBlockJoinsV2(
     const pair = pairs.find((p) => p.joinPos === group.joinPos);
     if (!pair) return group;
 
-    // Resolve zwsp1's position and get the position after its parent block
+    // Resolve zwsp1's position and find the correct joinable block level
     const $zwsp1 = doc.resolve(pair.zwsp1.pos);
-    const joinPos = $zwsp1.after($zwsp1.depth);
+    const $zwsp2 = doc.resolve(pair.zwsp2.pos);
 
-    return { ...group, joinPos };
+    // Walk up from the maximum common depth to find the highest block level where:
+    // 1. zwsp1 is at the end of its ancestor block
+    // 2. zwsp2 is at the start of its ancestor block
+    // 3. Both blocks are children of the same parent
+    const maxDepth = Math.min($zwsp1.depth, $zwsp2.depth);
+    let joinDepth = maxDepth;
+    for (let d = maxDepth; d >= 1; d--) {
+      const node1 = $zwsp1.node(d);
+      const node2 = $zwsp2.node(d);
+
+      // Check if these are different blocks with the same parent
+      if (node1 !== node2 && $zwsp1.node(d - 1) === $zwsp2.node(d - 1)) {
+        // Check if zwsp1 is at the end of this block
+        const afterPos1 = $zwsp1.after(d);
+        if (afterPos1 > pair.zwsp1.pos) {
+          // Check if zwsp2 is at or after the start of its block
+          const beforePos2 = $zwsp2.before(d);
+          if (beforePos2 <= pair.zwsp2.pos) {
+            joinDepth = d;
+          }
+        }
+      }
+    }
+
+    const joinPos = $zwsp1.after(joinDepth);
+
+    // Determine if we need a nested join by checking if EITHER ZWSP is deeper than join depth
+    // If the ZWSPs are in nested blocks (e.g., paragraphs inside list_items),
+    // and we're joining at a higher level (e.g., list_item level),
+    // then we should also attempt to join the nested content
+    const needsNestedJoin = $zwsp1.depth > joinDepth || $zwsp2.depth > joinDepth;
+
+    // If nested join is needed, calculate where the nested blocks will meet
+    // after the outer join. The nested blocks are at zwsp1.depth and zwsp2.depth.
+    let nestedJoinPos: number | undefined;
+    if (needsNestedJoin) {
+      // The nested join position is where the zwsp1's deepest block ends
+      // After joining the outer blocks, this will be where the nested blocks meet
+      nestedJoinPos = $zwsp1.after($zwsp1.depth);
+    }
+
+    return { ...group, joinPos, needsNestedJoin, nestedJoinPos };
   });
 
   // Step 7: Collect all positions to delete
@@ -159,6 +207,28 @@ export function processBlockJoinsV2(
     try {
       if (canJoin(trackedTransaction.doc, mappedPos)) {
         trackedTransaction.join(mappedPos);
+
+        // If this pair needs a nested join, join the nested blocks that belonged
+        // to this specific ZWSP pair
+        if (group.needsNestedJoin && group.nestedJoinPos !== undefined) {
+          // Map the nested join position through the deletions AND the join we just did
+          const joinStep = trackedTransaction.steps[trackedTransaction.steps.length - 1];
+          const mappedNestedPos = deletionMapping.map(group.nestedJoinPos, 1);
+          const finalNestedPos = joinStep?.getMap().map(mappedNestedPos, 1) ?? mappedNestedPos;
+
+          try {
+            // Check if we can join at the calculated nested position
+            if (
+              finalNestedPos > 0 &&
+              finalNestedPos < trackedTransaction.doc.content.size &&
+              canJoin(trackedTransaction.doc, finalNestedPos)
+            ) {
+              trackedTransaction.join(finalNestedPos);
+            }
+          } catch {
+            // Nested join position not valid
+          }
+        }
       }
     } catch {
       // Position no longer valid for joining, skip

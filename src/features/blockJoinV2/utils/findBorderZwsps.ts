@@ -14,9 +14,10 @@ export function findBorderZwsps(
   const rightZwsps: ZwspInfo[] = [];
 
   // Check for ZWSPs near the left border (expand search range)
+  // Use larger radius (15) to account for nested blocks like list_item → paragraph
   const leftBorderZwsps = findZwspsInRange(
     doc,
-    Math.max(0, rangeFrom - 4),
+    Math.max(0, rangeFrom - 15),
     rangeFrom,
     insertionMarkType,
   );
@@ -28,10 +29,11 @@ export function findBorderZwsps(
   }
 
   // Check for ZWSPs near the right border (expand search range)
+  // Use larger radius (15) to account for nested blocks like list_item → paragraph
   const rightBorderZwsps = findZwspsInRange(
     doc,
     rangeTo,
-    Math.min(doc.content.size, rangeTo + 4),
+    Math.min(doc.content.size, rangeTo + 15),
     insertionMarkType,
   );
 
