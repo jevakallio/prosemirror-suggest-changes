@@ -61,19 +61,23 @@ export function processBlockJoinsV2(
   // Step 4: Find pairs within range
   const pairsInRange = findZwspPairs(zwspsInRange);
 
-  // Step 5: Determine which pairs to process
-  // - If deletion range is non-empty: only pairs where at least one ZWSP is in range
-  // - If deletion range is empty (point deletion): also include pairs from border ZWSPs
-  let pairs: ReturnType<typeof findZwspPairs>;
-  if (stepFrom < stepTo) {
-    // Non-empty range: only use pairs that touch the deletion range
-    pairs = [...pairsInRange, ...borderInfo.pairsAcrossBorder];
-  } else {
-    // Empty range (point deletion): use all pairs formed by border ZWSPs
-    const allBorderZwsps = [...borderInfo.leftZwsps, ...borderInfo.rightZwsps];
-    const borderPairs = findZwspPairs(allBorderZwsps);
-    pairs = borderPairs;
-  }
+  // Step 5: Find pairs from border ZWSPs
+  // The deletion range might be BETWEEN the ZWSPs (not ON them)
+  const allBorderZwsps = [...borderInfo.leftZwsps, ...borderInfo.rightZwsps];
+  const allBorderPairs = findZwspPairs(allBorderZwsps);
+
+  // Filter border pairs to only include those where ZWSPs bracket the deletion range
+  // This prevents joining blocks from unrelated splits that happen to be within ±15 positions
+  const relevantBorderPairs = allBorderPairs.filter((pair) => {
+    // Check if zwsp1 is before/at the range start and zwsp2 is after/at the range end
+    // This ensures the deletion range is between or overlapping the ZWSPs
+    const zwsp1BeforeRange = pair.zwsp1.pos <= stepFrom;
+    const zwsp2AfterRange = pair.zwsp2.pos >= stepTo;
+    return zwsp1BeforeRange && zwsp2AfterRange;
+  });
+
+  // Step 6: Combine all relevant pairs
+  const pairs = [...pairsInRange, ...borderInfo.pairsAcrossBorder, ...relevantBorderPairs];
 
   // Step 6: Group pairs into block join operations
   const groups = groupPairsByBlock(pairs);
