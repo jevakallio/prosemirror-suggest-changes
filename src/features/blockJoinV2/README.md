@@ -87,10 +87,17 @@ The V2 implementation follows a straightforward 7-step process:
 **`findZwspPairs(zwsps: ZwspInfo[]): ZwspPair[]`**
 
 - Matches ZWSPs with the same ID into pairs
+- **Supports chain pairing**: A ZWSP can participate in multiple pairs (e.g.,
+  Para A-end → B-start AND B-end → C-start)
+- **Validates block boundaries**: Only pairs blockEnd → blockStart positions
+- **Rejects same-block pairs**: ZWSPs in the same parentNode are not paired
+- **Sorts input by position**: Ensures correct ordering when ZWSPs come from
+  multiple sources
 - Determines if pairs should trigger block joins
 - Calculates join positions for valid pairs
 - Handles unpaired ZWSPs gracefully
-- **Tests**: 11 tests covering pairing logic, ID mismatches, edge cases
+- **Tests**: 15 tests covering pairing logic, chaining, cross-block types,
+  same-block rejection
 
 **`findBorderZwsps(doc, rangeFrom, rangeTo, zwspsInRange, insertionMarkType): BorderZwspInfo`**
 
@@ -110,7 +117,7 @@ The V2 implementation follows a straightforward 7-step process:
 
 - **Type Definitions** (`types.ts`): Clean TypeScript interfaces for all data
   structures
-- **Test Suite**: 29 passing tests across 4 test files
+- **Test Suite**: 33 passing tests across 4 test files
 - **Linting & Type Safety**: All code passes ESLint and TypeScript strict checks
 
 ### 🚧 Remaining Work
@@ -256,9 +263,72 @@ monolithic phases.
 - Easier to modify: change one function without affecting others
 - Better separation of concerns
 
+### 5. Chain Pairing Support (New)
+
+**Decision**: Allow a single ZWSP to participate in multiple pairs, enabling
+proper handling of multi-block insertions with the same suggestion ID.
+
+**Rationale**:
+
+- **Real-world scenario**: When a user inserts multiple paragraphs in suggestion
+  mode, all blocks share the same suggestion ID
+- **Example structure**:
+  `Para A[ZWSP id=1] → [ZWSP id=1]Para B[ZWSP id=1] → [ZWSP id=1]Para C`
+- **Expected behavior**: Deleting any part of this range should detect and
+  handle BOTH pairs: (A-end → B-start) AND (B-end → C-start)
+- **Implementation**: Removed the "mark as used" logic that prevented ZWSP reuse
+- **Validation**: Each ZWSP at block-end seeks the nearest block-start ZWSP with
+  matching ID
+
+### 6. Same-Block Rejection (New)
+
+**Decision**: Reject pairing when both ZWSPs belong to the same parentNode.
+
+**Rationale**:
+
+- **Invalid scenario**: Two ZWSPs with the same ID in a single paragraph should
+  never form a valid join
+- **Example**: `paragraph([ZWSP id=1] "text" [ZWSP id=1])` represents a
+  malformed document state
+- **Implementation**: Check `zwsp1.parentNode === zwsp2.parentNode` and skip
+  pairing if true
+- **User requirement**: Explicitly requested to reject same-block pairs entirely
+
+### 7. Position Sorting (New)
+
+**Decision**: Sort all ZWSPs by position before pairing, regardless of input
+order.
+
+**Rationale**:
+
+- **Problem**: When ZWSPs come from multiple sources (e.g., `findBorderZwsps`
+  combines in-range and border ZWSPs), they may not be in position order
+- **Impact**: The pairing algorithm relies on sequential iteration where
+  blockEnd comes before blockStart
+- **Solution**: `const sortedZwsps = [...zwsps].sort((a, b) => a.pos - b.pos)`
+- **Benefit**: Makes the algorithm robust to input ordering variations
+
+### 8. Reverse-Order Validation (New)
+
+**Decision**: Only accept pairs where `blockEnd` position comes before
+`blockStart` position (reject reverse order).
+
+**Rationale**:
+
+- **Valid pair**: `Para1[...ZWSP at pos 5, blockEnd=true]` then
+  `Para2[ZWSP at pos 8, blockStart=true]`
+- **Invalid pair**: `Para1[ZWSP at pos 5, blockStart=true]` then
+  `Para2[...ZWSP at pos 20, blockEnd=true]`
+- **Analysis**: The second scenario represents non-adjacent block boundaries
+  that should not be joined
+- **Implementation**: Removed the `(blockStart, blockEnd)` case from
+  `canJoinBlocks()`
+- **Result**: Simplified logic and eliminated potential bugs from accepting
+  invalid pairs
+
 ## Testing Strategy
 
-### Unit Tests (29 tests, all passing)
+### Unit Tests (33 tests, all passing)
 
 Each utility has comprehensive tests covering:
 
@@ -410,6 +480,20 @@ The orchestrator is the missing piece for end-to-end functionality.
 
 ---
 
-**Last Updated**: 2025-11-20 **Status**: Core utilities complete, orchestrator
-pending **Test Coverage**: 29/29 tests passing **Lines of Code**: ~400
-(utilities + tests)
+**Last Updated**: 2025-11-20 **Status**: Core utilities complete with chain
+pairing support, orchestrator pending **Test Coverage**: 33/33 tests passing
+**Lines of Code**: ~550 (utilities + tests)
+
+### Recent Updates (2025-11-20)
+
+- ✅ **Chain pairing support**: ZWSPs can now participate in multiple pairs
+  (e.g., 3-block chains)
+- ✅ **Same-block rejection**: Pairs with both ZWSPs in same parentNode are
+  rejected
+- ✅ **Position sorting**: Input ZWSPs are sorted before pairing for robustness
+- ✅ **Reverse-order fix**: Removed invalid `(blockStart, blockEnd)` pairing
+  case
+- ✅ **Enhanced test coverage**: Added 4 new tests covering chaining,
+  cross-block types, and edge cases
+- ✅ **Documentation updates**: Comprehensive design decision documentation for
+  all changes
