@@ -120,6 +120,41 @@ test.describe("Block Join E2E - Real Keyboard Events", () => {
   });
 
   test.describe("Edge Cases", () => {
+    test("should delete typed character after Enter + Type + Backspace", async ({
+      page,
+    }) => {
+      // This test reproduces a bug where typing a character after Enter,
+      // then pressing Backspace, causes the cursor to jump over the character
+      // instead of deleting it.
+      await page.evaluate(() => {
+        window.pmEditor.setCursorToEnd();
+      });
+
+      // Press Enter to split the paragraph
+      await page.keyboard.press("Enter");
+      await page.waitForTimeout(100);
+
+      const afterEnter = await getEditorState(page);
+      expect(afterEnter.paragraphCount).toBe(2);
+
+      // Type a character
+      await page.keyboard.type("A");
+      await page.waitForTimeout(100);
+
+      const afterType = await getEditorState(page);
+      expect(afterType.textContent).toContain("A");
+
+      // Press Backspace to delete the character
+      await page.keyboard.press("Backspace");
+      await page.waitForTimeout(100);
+
+      const afterBackspace = await getEditorState(page);
+      // The character should be deleted
+      expect(afterBackspace.textContent).not.toContain("A");
+      // Document should still have 2 paragraphs (we only deleted the character, not the block boundary)
+      expect(afterBackspace.paragraphCount).toBe(2);
+    });
+
     test("should handle Enter at middle of text then Backspace", async ({
       page,
     }) => {

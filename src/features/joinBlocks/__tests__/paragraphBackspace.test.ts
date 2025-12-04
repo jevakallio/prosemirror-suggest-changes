@@ -46,6 +46,42 @@ describe("Paragraph Backspace Behavior", () => {
     );
   });
 
+  it("should delete character immediately after ZWSP", () => {
+    // Document with ZWSP + character in same text node (same insertion mark)
+    const doc = testBuilders.doc(
+      testBuilders.paragraph("first ", testBuilders.insertion({ id: 1 }, ZWSP)),
+      testBuilders.paragraph(
+        testBuilders.insertion({ id: 1 }, ZWSP + "A<a>"),
+        "paragraph",
+      ),
+    ) as TaggedNode;
+
+    const state = EditorState.create({ doc });
+    const tagA = doc.tag["a"];
+    assert(tagA !== undefined, "Tag 'a' not found");
+    const charPos = tagA - 1; // Position of "A"
+
+    const backspaceStep = replaceStep(
+      doc,
+      charPos,
+      charPos + 1,
+      Slice.empty,
+    ) as ReplaceStep;
+    const tr = state.tr;
+    suggestReplaceStep(tr, state, doc, backspaceStep, [], 2);
+    const finalState = state.apply(tr);
+
+    const expected = testBuilders.doc(
+      testBuilders.paragraph("first ", testBuilders.insertion({ id: 1 }, ZWSP)),
+      testBuilders.paragraph(
+        testBuilders.insertion({ id: 1 }, ZWSP),
+        "paragraph",
+      ),
+    );
+
+    assert(eq(finalState.doc, expected), "Character A should be deleted");
+  });
+
   it("should keep added content when backspacing at boundary", () => {
     const splitDoc = testBuilders.doc(
       testBuilders.paragraph(

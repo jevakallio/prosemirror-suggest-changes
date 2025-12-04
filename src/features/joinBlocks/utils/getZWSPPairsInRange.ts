@@ -24,7 +24,10 @@ export const getZWSPPairsInRange = (
       index === 0 &&
       node.text?.[0] === ZWSP &&
       insertionMarkId &&
-      currentEndingZWSP.id === insertionMarkId
+      currentEndingZWSP.id === insertionMarkId &&
+      // Prevent self-pairing: don't pair a ZWSP with itself when both
+      // the previousZWSP and the current node's ZWSP are at the same position
+      currentEndingZWSP.pos !== pos
     ) {
       // maybe it's pos + 1
       pairs.push({
