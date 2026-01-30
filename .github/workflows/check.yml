@@ -26,21 +26,16 @@ jobs:
         run: corepack enable
 
       - name: Install dependencies
-        run: yarn
+        run: pnpm install
 
       - name: Lint
-        run: yarn check:lint
+        run: pnpm check:lint
 
       - name: Format
-        run: yarn check:format
+        run: pnpm check:format
 
       - name: Types
-        run: yarn check:types
-
-      - name: Version
-        run:
-          git fetch origin main --depth 1 && ./scripts/if-no-version-change.sh
-          yarn version check
+        run: pnpm check:types
 
   test:
     runs-on: ubuntu-latest
@@ -58,7 +53,7 @@ jobs:
         run: corepack enable
 
       - name: Install dependencies
-        run: yarn
+        run: pnpm install
 
       - name: Test
-        run: yarn test
+        run: pnpm test

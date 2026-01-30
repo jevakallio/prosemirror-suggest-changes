@@ -26,10 +26,10 @@ jobs:
         run: corepack enable
 
       - name: Install dependencies
-        run: yarn
+        run: pnpm install
 
       - name: Build
-        run: yarn demo:build
+        run: pnpm demo:build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
