@@ -34,8 +34,7 @@
     "fix": "concurrently -P 'npm:fix:* {@}' --",
     "prepack": "pnpm build",
     "test": "vitest",
-    "test:e2e": "playwright test",
-    "prepare": "husky"
+    "test:e2e": "playwright test"
   },
   "packageManager": "pnpm@9.15.4",
   "devDependencies": {
