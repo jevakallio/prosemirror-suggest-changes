@@ -4,6 +4,7 @@
   "license": "MIT",
   "type": "module",
   "module": "dist/index.js",
+  "private": false,
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
